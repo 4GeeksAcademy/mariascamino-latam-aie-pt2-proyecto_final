@@ -14,7 +14,10 @@
     <link rel="stylesheet" href="assets/output.css" />
   </head>
   <body class="min-h-screen bg-gradient-to-b from-slate-100 to-slate-50 text-slate-800 antialiased font-sans">
-    <header class="border-b border-slate-200 bg-white/95 backdrop-blur">
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-teal-700">
+      Ir al contenido principal
+    </a>
+    <header role="banner" class="border-b border-slate-200 bg-white/95 backdrop-blur">
       <div class="mx-auto flex w-full max-w-4xl flex-col items-start justify-between gap-3 px-4 py-4 sm:flex-row sm:items-center sm:px-6 lg:px-8">
         <a
           href="index.html"
@@ -28,7 +31,7 @@
       </div>
     </header>
 
-    <main class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 md:py-10 lg:px-8">
+    <main id="main" role="main" class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 md:py-10 lg:px-8">
       <section aria-labelledby="form-title" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/70 sm:rounded-3xl sm:p-8">
         <h2 id="form-title" class="text-xl font-bold text-slate-900 sm:text-2xl">Formulario de registro</h2>
         <p class="mt-2 text-sm text-slate-600">Completa la información del paciente para iniciar su atención en HealthCore.</p>
@@ -49,7 +52,7 @@
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 />
-                <p id="firstNameError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="firstNameError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
 
               <div>
@@ -64,7 +67,7 @@
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 />
-                <p id="lastNameError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="lastNameError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
 
               <div class="md:col-span-2">
@@ -79,7 +82,7 @@
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 />
-                <p id="dateOfBirthError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="dateOfBirthError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
             </div>
           </fieldset>
@@ -99,7 +102,7 @@
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 />
-                <p id="emailError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="emailError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
 
               <div>
@@ -115,7 +118,7 @@
                   placeholder="+1 305 555 0191"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 />
-                <p id="phoneError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="phoneError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
 
               <div class="md:col-span-2">
@@ -133,7 +136,7 @@
                   <option value="English">English</option>
                   <option value="Spanish">Spanish</option>
                 </select>
-                <p id="preferredLanguageError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="preferredLanguageError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
             </div>
           </fieldset>
@@ -148,7 +151,7 @@
                   name="preferred_clinic"
                   required
                   aria-required="true"
-                  aria-describedby="preferredClinicError"
+                  aria-describedby="preferredClinicError eveningAvailabilityWarning"
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 >
@@ -160,7 +163,7 @@
                   <option value="HealthCore Orlando">HealthCore Orlando</option>
                   <option value="HealthCore Atlanta">HealthCore Atlanta</option>
                 </select>
-                <p id="preferredClinicError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="preferredClinicError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
 
               <div>
@@ -175,7 +178,7 @@
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 />
-                <p id="preferredDateError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="preferredDateError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
 
               <div>
@@ -185,7 +188,7 @@
                   name="preferred_time"
                   required
                   aria-required="true"
-                  aria-describedby="preferredTimeError"
+                  aria-describedby="preferredTimeError eveningAvailabilityWarning"
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 >
@@ -194,7 +197,13 @@
                   <option value="Afternoon (12pm–5pm)">Afternoon (12pm–5pm)</option>
                   <option value="Evening (5pm–8pm)">Evening (5pm–8pm)</option>
                 </select>
-                <p id="preferredTimeError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="preferredTimeError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p
+                  id="eveningAvailabilityWarning"
+                  role="status"
+                  aria-live="polite"
+                  class="mt-2 hidden rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800"
+                ></p>
               </div>
 
               <div>
@@ -217,7 +226,7 @@
                   <option value="Paediatric Care">Paediatric Care</option>
                   <option value="Mental Health">Mental Health</option>
                 </select>
-                <p id="serviceTypeError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="serviceTypeError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
             </div>
           </fieldset>
@@ -237,7 +246,7 @@
                   No
                 </label>
               </div>
-              <p id="newPatientError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+              <p id="newPatientError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
             </div>
 
             <div id="patientIdGroup" class="hidden">
@@ -251,7 +260,7 @@
                 aria-invalid="false"
                 class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
               />
-              <p id="patientIdError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+              <p id="patientIdError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
             </div>
 
             <div>
@@ -266,7 +275,7 @@
                   No
                 </label>
               </div>
-              <p id="hasInsuranceError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+              <p id="hasInsuranceError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
             </div>
 
             <div id="insuranceFields" class="hidden grid gap-4 sm:grid-cols-2">
@@ -281,7 +290,7 @@
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 />
-                <p id="insuranceProviderError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="insuranceProviderError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
 
               <div>
@@ -294,7 +303,7 @@
                   aria-invalid="false"
                   class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus-visible:ring-4 focus-visible:ring-teal-500/20"
                 />
-                <p id="insuranceMemberIdError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+                <p id="insuranceMemberIdError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
               </div>
             </div>
 
@@ -312,7 +321,7 @@
                 placeholder="Describe tu motivo de consulta"
               ></textarea>
               <p id="healthConcernCount" class="mt-1 text-xs text-slate-500">0 / 500 caracteres</p>
-              <p id="healthConcernError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+              <p id="healthConcernError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
             </div>
 
             <div>
@@ -328,7 +337,7 @@
                 />
                 Consiento que HealthCore me contacte
               </label>
-              <p id="contactConsentError" role="alert" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
+              <p id="contactConsentError" role="alert" aria-live="polite" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"></p>
             </div>
           </fieldset>
 

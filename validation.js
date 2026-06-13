@@ -11,6 +11,12 @@ if (form) {
   const patientIdInput = document.getElementById("patient_id");
   const insuranceProviderInput = document.getElementById("insurance_provider");
   const insuranceMemberIdInput = document.getElementById("insurance_member_id");
+  const eveningAvailabilityWarning = document.getElementById("eveningAvailabilityWarning");
+
+  const eveningLimitedClinics = {
+    "HealthCore San Antonio": "6pm",
+    "HealthCore Austin North": "7pm",
+  };
 
   const getSelectedRadioValue = (name) => {
     const selected = form.querySelector(`input[name="${name}"]:checked`);
@@ -39,6 +45,15 @@ if (form) {
     return Number.isNaN(date.getTime()) ? null : date;
   };
 
+  const getAgeInYears = (dob, today) => {
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age -= 1;
+    }
+    return age;
+  };
+
   const dateToYmd = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -62,14 +77,8 @@ if (form) {
       error: document.getElementById("firstNameError"),
       validate: (value) => {
         const cleanValue = value.trim();
-        if (!cleanValue) {
-          return "El nombre es obligatorio.";
-        }
-        if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/.test(cleanValue)) {
-          return "El nombre solo puede incluir letras y acentos.";
-        }
-        if (cleanValue.length < 2 || cleanValue.length > 50) {
-          return "El nombre debe tener entre 2 y 50 caracteres.";
+        if (!cleanValue || !/^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/.test(cleanValue) || cleanValue.length < 2 || cleanValue.length > 50) {
+          return "El nombre debe contener solo letras y tener al menos 2 caracteres";
         }
         return "";
       },
@@ -79,14 +88,8 @@ if (form) {
       error: document.getElementById("lastNameError"),
       validate: (value) => {
         const cleanValue = value.trim();
-        if (!cleanValue) {
-          return "El apellido es obligatorio.";
-        }
-        if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/.test(cleanValue)) {
-          return "El apellido solo puede incluir letras y acentos.";
-        }
-        if (cleanValue.length < 2 || cleanValue.length > 50) {
-          return "El apellido debe tener entre 2 y 50 caracteres.";
+        if (!cleanValue || !/^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/.test(cleanValue) || cleanValue.length < 2 || cleanValue.length > 50) {
+          return "El apellido debe contener solo letras y tener al menos 2 caracteres";
         }
         return "";
       },
@@ -95,22 +98,23 @@ if (form) {
       input: document.getElementById("date_of_birth"),
       error: document.getElementById("dateOfBirthError"),
       validate: (value) => {
+        const invalidDobMessage = "Ingresa una fecha de nacimiento válida. El paciente debe tener entre 0 y 120 años";
         if (!value) {
-          return "La fecha de nacimiento es obligatoria.";
+          return invalidDobMessage;
         }
         const dob = toDate(value);
         if (!dob) {
-          return "Ingresa una fecha de nacimiento válida.";
+          return invalidDobMessage;
         }
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         if (dob > today) {
-          return "La fecha de nacimiento no puede ser futura.";
+          return invalidDobMessage;
         }
         const oldest = new Date(today);
         oldest.setFullYear(oldest.getFullYear() - 120);
         if (dob < oldest) {
-          return "La fecha de nacimiento no puede superar 120 años.";
+          return invalidDobMessage;
         }
         return "";
       },
@@ -120,11 +124,8 @@ if (form) {
       error: document.getElementById("emailError"),
       validate: (value) => {
         const cleanValue = value.trim();
-        if (!cleanValue) {
-          return "El correo electrónico es obligatorio.";
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanValue)) {
-          return "Ingresa un correo electrónico válido.";
+        if (!cleanValue || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanValue)) {
+          return "Ingresa un correo electrónico válido (ejemplo: nombre@proveedor.com)";
         }
         return "";
       },
@@ -134,11 +135,8 @@ if (form) {
       error: document.getElementById("phoneError"),
       validate: (value) => {
         const cleanValue = value.trim();
-        if (!cleanValue) {
-          return "El telefono es obligatorio.";
-        }
-        if (!/^\+[1-9]\d{0,3}[\s-]?\d[\d\s-]{6,}$/.test(cleanValue)) {
-          return "El telefono debe iniciar con codigo de pais (ej: +1 305 555 0191).";
+        if (!cleanValue || !/^\+[1-9]\d{0,3}[\s-]?\d[\d\s-]{6,}$/.test(cleanValue)) {
+          return "El teléfono debe incluir un código de país (ejemplo: +1 305 555 0191)";
         }
         return "";
       },
@@ -167,21 +165,22 @@ if (form) {
       input: document.getElementById("preferred_date"),
       error: document.getElementById("preferredDateError"),
       validate: (value) => {
+        const preferredDateMessage = "Selecciona una fecha de al menos 1 día hábil desde hoy y no más de 60 días hacia adelante";
         if (!value) {
-          return "La fecha preferida es obligatoria.";
+          return preferredDateMessage;
         }
         const selected = toDate(value);
         if (!selected) {
-          return "Ingresa una fecha preferida válida.";
+          return preferredDateMessage;
         }
         if (!isBusinessDay(selected)) {
-          return "La fecha preferida debe ser un dia habil.";
+          return preferredDateMessage;
         }
         if (selected < minBusinessDate) {
-          return "La fecha preferida debe ser al menos 1 dia habil desde hoy.";
+          return preferredDateMessage;
         }
         if (selected > maxPreferredDate) {
-          return "La fecha preferida no puede superar los 60 días.";
+          return preferredDateMessage;
         }
         return "";
       },
@@ -203,6 +202,20 @@ if (form) {
         if (!value.trim()) {
           return "Selecciona un servicio requerido.";
         }
+
+        if (value === "Paediatric Care") {
+          const dobValue = fields.date_of_birth?.input?.value;
+          const dob = toDate(dobValue);
+          if (dob) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const age = getAgeInYears(dob, today);
+            if (age >= 18) {
+              return "Paediatric Care está disponible para pacientes menores de 18 años. Revisa la fecha de nacimiento o selecciona un servicio diferente.";
+            }
+          }
+        }
+
         return "";
       },
     },
@@ -283,11 +296,9 @@ if (form) {
       error: document.getElementById("healthConcernError"),
       validate: (value) => {
         const cleanValue = value.trim();
-        if (!cleanValue) {
-          return "La descripcion de la consulta es obligatoria.";
-        }
         if (cleanValue.length < 20) {
-          return "La descripcion debe tener al menos 20 caracteres.";
+          const missingChars = 20 - cleanValue.length;
+          return `Describe tu consulta médica en al menos 20 caracteres (faltan ${missingChars} caracteres)`;
         }
         if (cleanValue.length > 500) {
           return "La descripcion no puede superar 500 caracteres.";
@@ -300,7 +311,7 @@ if (form) {
       error: document.getElementById("contactConsentError"),
       validate: (_, input) => {
         if (!input.checked) {
-          return "Debes aceptar el consentimiento de contacto para enviar.";
+          return "Debes dar tu consentimiento para ser contactado antes de enviar este formulario";
         }
         return "";
       },
@@ -386,6 +397,31 @@ if (form) {
     healthConcernCount.textContent = `${healthConcern.value.length} / 500 caracteres`;
   };
 
+  const updateEveningAvailabilityWarning = () => {
+    if (!eveningAvailabilityWarning) {
+      return;
+    }
+
+    const selectedTime = fields.preferred_time?.input?.value || "";
+    const selectedClinic = fields.preferred_clinic?.input?.value || "";
+
+    if (selectedTime !== "Evening (5pm–8pm)") {
+      eveningAvailabilityWarning.textContent = "";
+      eveningAvailabilityWarning.classList.add("hidden");
+      return;
+    }
+
+    const clinicClosingHour = eveningLimitedClinics[selectedClinic];
+    if (clinicClosingHour) {
+      eveningAvailabilityWarning.textContent = `Advertencia: ${selectedClinic} cierra a las ${clinicClosingHour}. La franja Evening (5pm–8pm) podría no estar disponible.`;
+      eveningAvailabilityWarning.classList.remove("hidden");
+      return;
+    }
+
+    eveningAvailabilityWarning.textContent = "";
+    eveningAvailabilityWarning.classList.add("hidden");
+  };
+
   Object.keys(fields).forEach((fieldKey) => {
     const field = fields[fieldKey];
     if (!field || !field.input) {
@@ -413,13 +449,28 @@ if (form) {
 
     field.input.addEventListener("input", () => {
       validateField(fieldKey);
+      if (fieldKey === "date_of_birth") {
+        validateField("service_type");
+      }
       if (fieldKey === "health_concern") {
         updateHealthConcernCount();
+      }
+      if (fieldKey === "preferred_time" || fieldKey === "preferred_clinic") {
+        updateEveningAvailabilityWarning();
       }
     });
 
     field.input.addEventListener("change", () => {
       validateField(fieldKey);
+      if (fieldKey === "date_of_birth") {
+        validateField("service_type");
+      }
+      if (fieldKey === "service_type") {
+        validateField("date_of_birth");
+      }
+      if (fieldKey === "preferred_time" || fieldKey === "preferred_clinic") {
+        updateEveningAvailabilityWarning();
+      }
     });
 
     field.input.addEventListener("blur", () => validateField(fieldKey));
@@ -427,11 +478,13 @@ if (form) {
 
   updateConditionalSections();
   updateHealthConcernCount();
+  updateEveningAvailabilityWarning();
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
     updateConditionalSections();
+    updateEveningAvailabilityWarning();
 
     const validationOrder = [
       "first_name",
@@ -483,6 +536,7 @@ if (form) {
     form.reset();
     updateConditionalSections();
     updateHealthConcernCount();
+    updateEveningAvailabilityWarning();
 
     Object.keys(fields).forEach((fieldKey) => setErrorState(fieldKey, ""));
 
@@ -515,6 +569,7 @@ if (form) {
       form.reset();
       updateConditionalSections();
       updateHealthConcernCount();
+      updateEveningAvailabilityWarning();
       Object.keys(fields).forEach((fieldKey) => setErrorState(fieldKey, ""));
       const firstNameInput = fields.first_name?.input;
       if (firstNameInput) {
