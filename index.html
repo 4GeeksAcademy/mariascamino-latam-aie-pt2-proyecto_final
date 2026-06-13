@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="HealthCore conecta 12 clínicas, especialistas y laboratorios para mejorar la atención médica en LATAM."
+    />
+    <title>HealthCore | Atención médica conectada</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/output.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "MedicalOrganization",
+            "@id": "https://www.healthcore.com/#organization",
+            "name": "HealthCore",
+            "description": "Outpatient healthcare network offering primary care, specialist consultations, chronic disease management, and preventive health programmes.",
+            "url": "https://www.healthcore.com",
+            "foundingDate": "2011",
+            "logo": "https://www.healthcore.com/logo.png",
+            "availableLanguage": ["English", "Spanish"],
+            "areaServed": ["US", "GB"],
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Austin",
+              "addressRegion": "Texas",
+              "addressCountry": "US"
+            },
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "telephone": "+1-512-340-8800",
+              "contactType": "patient services",
+              "availableLanguage": ["English", "Spanish"]
+            },
+            "sameAs": [
+              "https://linkedin.com/company/healthcore",
+              "https://facebook.com/healthcore",
+              "https://instagram.com/healthcore"
+            ]
+          },
+          {
+            "@type": "MedicalClinic",
+            "name": "HealthCore Austin Central",
+            "telephone": "+1-512-340-8800",
+            "openingHours": ["Mo-Fr 07:00-20:00", "Sa 09:00-15:00"],
+            "parentOrganization": { "@id": "https://www.healthcore.com/#organization" }
+          },
+          {
+            "@type": "MedicalClinic",
+            "name": "HealthCore Austin North",
+            "telephone": "+1-512-340-8810",
+            "openingHours": ["Mo-Fr 08:00-19:00"],
+            "parentOrganization": { "@id": "https://www.healthcore.com/#organization" }
+          },
+          {
+            "@type": "MedicalClinic",
+            "name": "HealthCore San Antonio",
+            "telephone": "+1-210-720-4400",
+            "openingHours": ["Mo-Fr 08:00-18:00", "Sa 09:00-13:00"],
+            "parentOrganization": { "@id": "https://www.healthcore.com/#organization" }
+          },
+          {
+            "@type": "MedicalClinic",
+            "name": "HealthCore Miami",
+            "telephone": "+1-305-510-7700",
+            "openingHours": ["Mo-Fr 07:00-20:00", "Sa 09:00-16:00"],
+            "parentOrganization": { "@id": "https://www.healthcore.com/#organization" }
+          },
+          {
+            "@type": "MedicalClinic",
+            "name": "HealthCore Orlando",
+            "telephone": "+1-407-892-6600",
+            "openingHours": ["Mo-Fr 08:00-18:00"],
+            "parentOrganization": { "@id": "https://www.healthcore.com/#organization" }
+          },
+          {
+            "@type": "MedicalClinic",
+            "name": "HealthCore Atlanta",
+            "telephone": "+1-404-330-9900",
+            "openingHours": ["Mo-Fr 08:00-19:00"],
+            "parentOrganization": { "@id": "https://www.healthcore.com/#organization" }
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body class="bg-slate-50 text-slate-800 antialiased font-sans">
+    <a href="#inicio" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-teal-700">
+      <span data-i18n="skip">Saltar al contenido principal</span>
+    </a>
+    <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur" aria-label="Encabezado principal">
+      <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <a href="#inicio" class="flex items-center gap-3" aria-label="Ir al inicio de HealthCore">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="40"
+            height="40"
+            viewBox="0 0 64 64"
+            role="img"
+            aria-label="Logo de HealthCore"
+            class="h-10 w-10 rounded-full shadow-sm"
+          >
+            <title>Logo de HealthCore</title>
+            <circle cx="32" cy="32" r="30" fill="#0f766e" />
+            <path d="M32 18v28M18 32h28" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+          </svg>
+          <div>
+            <h1 class="text-lg font-bold leading-tight text-teal-800 sm:text-xl">HealthCore</h1>
+            <p class="text-xs text-slate-600 sm:text-sm" data-i18n="header_tagline">Atención médica más conectada</p>
+          </div>
+        </a>
+
+        <nav aria-label="Navegacion principal" class="hidden md:block">
+          <ul class="flex items-center gap-6 text-sm font-medium">
+            <li><a href="#inicio" class="text-slate-700 transition hover:text-teal-700" data-i18n="nav_home">Inicio</a></li>
+            <li><a href="#servicios" class="text-slate-700 transition hover:text-teal-700" data-i18n="nav_services">Servicios</a></li>
+            <li><a href="#ubicaciones" class="text-slate-700 transition hover:text-teal-700" data-i18n="nav_locations">Ubicaciones</a></li>
+            <li><a href="#contacto" class="text-slate-700 transition hover:text-teal-700" data-i18n="nav_contact">Contacto</a></li>
+          </ul>
+        </nav>
+        <div class="hidden items-center gap-1 rounded-full border border-slate-200 bg-white p-1 md:inline-flex" aria-label="Selector de idioma">
+          <button type="button" class="lang-toggle rounded-full px-2.5 py-1 text-xs font-semibold" data-lang="en">EN</button>
+          <button type="button" class="lang-toggle rounded-full px-2.5 py-1 text-xs font-semibold" data-lang="es">ES</button>
+        </div>
+        <a
+          href="application.html"
+          class="hidden rounded-xl bg-teal-700 px-4 py-2 text-center text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:bg-teal-800 md:inline-flex"
+          aria-label="Ir al formulario de registro"
+          ><span data-i18n="header_cta">Solicitar una cita</span></a
+        >
+        <button
+          id="mobile-menu-button"
+          type="button"
+          class="inline-flex items-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 md:hidden"
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-controls="mobile-menu"
+          aria-label="Abrir menú de navegación"
+        >
+          Menu
+        </button>
+      </div>
+      <nav id="mobile-menu" aria-label="Navegación móvil" class="hidden border-t border-slate-200 bg-white px-4 py-3 md:hidden">
+        <ul class="grid gap-2 text-sm font-semibold">
+          <li><a href="#inicio" class="block rounded-lg bg-slate-100 px-3 py-2 text-slate-700" data-i18n="nav_home">Inicio</a></li>
+          <li><a href="#servicios" class="block rounded-lg bg-slate-100 px-3 py-2 text-slate-700" data-i18n="nav_services">Servicios</a></li>
+          <li><a href="#ubicaciones" class="block rounded-lg bg-slate-100 px-3 py-2 text-slate-700" data-i18n="nav_locations">Ubicaciones</a></li>
+          <li><a href="#contacto" class="block rounded-lg bg-slate-100 px-3 py-2 text-slate-700" data-i18n="nav_contact">Contacto</a></li>
+        </ul>
+        <div class="mt-3 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1" aria-label="Selector de idioma movil">
+          <button type="button" class="lang-toggle rounded-full px-2.5 py-1 text-xs font-semibold" data-lang="en">EN</button>
+          <button type="button" class="lang-toggle rounded-full px-2.5 py-1 text-xs font-semibold" data-lang="es">ES</button>
+        </div>
+        <a
+          href="application.html"
+          class="mt-3 block rounded-xl bg-teal-700 px-4 py-2 text-center text-sm font-semibold text-white"
+          ><span data-i18n="header_cta">Solicitar una cita</span></a
+        >
+      </nav>
+    </header>
+
+    <main id="inicio" tabindex="-1">
+      <section aria-labelledby="hero-title" class="relative overflow-hidden bg-gradient-to-br from-teal-900 via-cyan-800 to-sky-700 text-white">
+        <div aria-hidden="true" class="pointer-events-none absolute -left-16 top-10 h-48 w-48 rounded-full bg-cyan-300/20 blur-3xl"></div>
+        <div aria-hidden="true" class="pointer-events-none absolute -right-8 bottom-0 h-56 w-56 rounded-full bg-teal-200/20 blur-3xl"></div>
+        <div class="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-2 lg:px-8 lg:py-24">
+          <div>
+            <p class="inline-flex rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
+              <span data-i18n="hero_badge">Salud ambulatoria confiable</span>
+            </p>
+            <h2 id="hero-title" class="mt-4 text-2xl font-bold leading-tight sm:text-3xl md:text-4xl lg:text-5xl">
+              <span data-i18n="hero_title">Atención médica que se adapta a tu vida</span>
+            </h2>
+            <p class="mt-5 max-w-2xl text-base text-cyan-50 sm:text-lg">
+              <span data-i18n="hero_subtitle">12 clínicas ambulatorias en EE. UU. y Reino Unido que ofrecen citas el mismo día, horarios extendidos y atención bilingüe, para que recibas la atención que necesitas, cuando la necesitas.</span>
+            </p>
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a
+                href="application.html"
+                class="rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-teal-900 shadow transition hover:-translate-y-0.5 hover:bg-slate-100"
+                aria-label="Comenzar registro de paciente"
+                ><span data-i18n="hero_cta">Solicitar una cita</span></a
+              >
+            </div>
+          </div>
+
+          <article class="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-2xl backdrop-blur md:p-7">
+            <img
+              src="assets/images/hero-clinic.webp"
+              alt="Doctora revisando en tablet el historial clínico de un paciente en una consulta moderna"
+              width="1200"
+              height="800"
+              class="h-48 w-full rounded-xl object-cover"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
+            <h3 class="mt-4 text-lg font-semibold">Valor para pacientes y equipos médicos</h3>
+            <ul class="mt-4 space-y-3 text-sm text-cyan-50">
+              <li data-i18n="hero_panel_1">Citas el mismo día en la mayoría de las ubicaciones.</li>
+              <li data-i18n="hero_panel_2">Horarios extendidos entre semana y sábados disponibles.</li>
+              <li data-i18n="hero_panel_3">Atención bilingüe para pacientes en inglés y español.</li>
+              <li data-i18n="hero_panel_4">Red integrada para una coordinación clínica más eficiente.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="servicios" aria-labelledby="servicios-title" class="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-16 lg:px-8">
+        <h2 id="servicios-title" class="text-2xl font-bold text-slate-900 sm:text-3xl" data-i18n="services_title">Servicios</h2>
+        <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <img
+              src="assets/images/service-primary.webp"
+              alt="Paciente usando portal digital de salud desde su teléfono para agendar una cita"
+              width="1200"
+              height="800"
+              class="h-40 w-full rounded-xl object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+            <h3 class="mt-4 text-lg font-semibold text-teal-800" data-i18n="service_1_title">Atención Primaria y Enfermedades Crónicas</h3>
+            <p class="mt-2 text-sm text-slate-600" data-i18n="service_1_desc">Citas el mismo día con médicos de atención primaria y manejo continuo de diabetes, hipertensión y asma.</p>
+          </article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <img
+              src="assets/images/service-specialists.webp"
+              alt="Equipo clínico coordinando flujo de atención en pantalla con pacientes y especialistas"
+              width="1200"
+              height="800"
+              class="h-40 w-full rounded-xl object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+            <h3 class="mt-4 text-lg font-semibold text-teal-800" data-i18n="service_2_title">Consultas con Especialistas</h3>
+            <p class="mt-2 text-sm text-slate-600" data-i18n="service_2_desc">Cardiología, endocrinología, neumología y salud de la mujer, con derivaciones coordinadas dentro de la red HealthCore.</p>
+          </article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <img
+              src="assets/images/service-preventive.webp"
+              alt="Profesional de salud analizando resultados de laboratorio asistido por inteligencia artificial"
+              width="1200"
+              height="800"
+              class="h-40 w-full rounded-xl object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+            <h3 class="mt-4 text-lg font-semibold text-teal-800" data-i18n="service_3_title">Salud Preventiva y Bienestar</h3>
+            <p class="mt-2 text-sm text-slate-600" data-i18n="service_3_desc">Chequeos, vacunación y revisiones anuales, además de asesoramiento en salud mental y derivaciones a psiquiatría.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="por-que-healthcore" aria-labelledby="why-title" class="bg-slate-100/70">
+        <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-16 lg:px-8">
+          <h2 id="why-title" class="text-2xl font-bold text-slate-900 sm:text-3xl" data-i18n="why_title">Por qué HealthCore</h2>
+          <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            <article class="rounded-xl border border-slate-200 bg-white p-5">
+              <h3 class="text-base font-semibold text-teal-800" data-i18n="why_1_title">Citas el mismo día</h3>
+              <p class="mt-2 text-sm text-slate-600" data-i18n="why_1_desc">Disponibles en la mayoría de las ubicaciones para que recibas atención cuando la necesitas.</p>
+            </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-5">
+              <h3 class="text-base font-semibold text-teal-800" data-i18n="why_2_title">Horarios extendidos</h3>
+              <p class="mt-2 text-sm text-slate-600" data-i18n="why_2_desc">Entre semana hasta las 7pm u 8pm y con sábados disponibles en varias clínicas.</p>
+            </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-5">
+              <h3 class="text-base font-semibold text-teal-800" data-i18n="why_3_title">Personal bilingüe</h3>
+              <p class="mt-2 text-sm text-slate-600" data-i18n="why_3_desc">Atención en inglés y español en las ubicaciones de EE. UU.</p>
+            </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-5">
+              <h3 class="text-base font-semibold text-teal-800" data-i18n="why_4_title">12 clínicas</h3>
+              <p class="mt-2 text-sm text-slate-600" data-i18n="why_4_desc">Presencia en Texas, Florida, Georgia y el Reino Unido.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="ubicaciones" aria-labelledby="ubicaciones-title" class="bg-white">
+        <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-16 lg:px-8">
+          <h2 id="ubicaciones-title" class="text-2xl font-bold text-slate-900 sm:text-3xl" data-i18n="locations_title">Ubicaciones en EE. UU.</h2>
+          <p class="mt-3 max-w-2xl text-sm text-slate-600" data-i18n="locations_subtitle">Conoce las clínicas de HealthCore en Estados Unidos y sus horarios de atención.</p>
+          <img
+            src="assets/images/locations-clinic.webp"
+            alt="Equipo médico en consulta clínica representando la red ambulatoria de HealthCore"
+            width="1600"
+            height="900"
+            class="mt-6 h-56 w-full rounded-2xl object-cover sm:h-64"
+            loading="lazy"
+            decoding="async"
+          />
+          <ul class="mt-6 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" data-i18n="loc_1">HealthCore Austin Central · Austin, TX · (512) 340-8800 · Lun–Vie 7am–8pm · Sáb 9am–3pm</li>
+            <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" data-i18n="loc_2">HealthCore Austin North · Austin, TX · (512) 340-8810 · Lun–Vie 8am–7pm</li>
+            <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" data-i18n="loc_3">HealthCore San Antonio · San Antonio, TX · (210) 720-4400 · Lun–Vie 8am–6pm · Sáb 9am–1pm</li>
+            <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" data-i18n="loc_4">HealthCore Miami · Miami, FL · (305) 510-7700 · Lun–Vie 7am–8pm · Sáb 9am–4pm</li>
+            <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" data-i18n="loc_5">HealthCore Orlando · Orlando, FL · (407) 892-6600 · Lun–Vie 8am–6pm</li>
+            <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3" data-i18n="loc_6">HealthCore Atlanta · Atlanta, GA · (404) 330-9900 · Lun–Vie 8am–7pm</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+
+    <footer id="contacto" aria-labelledby="contacto-title" class="border-t border-slate-200 bg-white">
+      <div class="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
+        <section>
+          <h2 id="contacto-title" class="text-lg font-bold text-slate-900" data-i18n="contact_title">Contacto</h2>
+          <p class="mt-2 text-sm text-slate-600" data-i18n="contact_subtitle">Estamos disponibles para ayudarte a mejorar la atención clínica.</p>
+        </section>
+        <address class="not-italic text-sm text-slate-700">
+          <p class="font-semibold">HealthCore</p>
+          <p class="mt-1">Email: <a class="text-teal-700 hover:text-teal-900" href="mailto:info@healthcore.com">info@healthcore.com</a></p>
+          <p class="mt-1">Teléfono: <a class="text-teal-700 hover:text-teal-900" href="tel:+15123408800">(512) 340-8800</a></p>
+          <p class="mt-1">Teléfono: <a class="text-teal-700 hover:text-teal-900" href="tel:+13055107700">(305) 510-7700</a></p>
+        </address>
+        <section class="text-sm text-slate-600">
+          <p data-i18n="hours_label">Horario de atención:</p>
+          <p class="mt-1 font-medium text-slate-800" data-i18n="hours_value">Lunes a Viernes, 8:00 a 18:00</p>
+          <a
+            href="application.html"
+            class="mt-4 inline-block rounded-xl bg-teal-700 px-4 py-2 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-teal-800"
+            ><span data-i18n="footer_cta">Solicitar una cita</span></a
+          >
+        </section>
+      </div>
+      <p class="border-t border-slate-200 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8" data-i18n="copyright">© 2025 HealthCore. Todos los derechos reservados.</p>
+    </footer>
+    <script>
+      const mobileMenuButton = document.getElementById("mobile-menu-button");
+      const mobileMenu = document.getElementById("mobile-menu");
+      const langButtons = document.querySelectorAll(".lang-toggle");
+
+      const translations = {
+        es: {
+          skip: "Saltar al contenido principal",
+          header_tagline: "Atención médica más conectada",
+          nav_home: "Inicio",
+          nav_services: "Servicios",
+          nav_locations: "Ubicaciones",
+          nav_contact: "Contacto",
+          header_cta: "Solicitar una cita",
+          hero_badge: "Salud ambulatoria confiable",
+          hero_title: "Atención médica que se adapta a tu vida",
+          hero_subtitle:
+            "12 clínicas ambulatorias en EE. UU. y Reino Unido que ofrecen citas el mismo día, horarios extendidos y atención bilingüe, para que recibas la atención que necesitas, cuando la necesitas.",
+          hero_cta: "Solicitar una cita",
+          hero_panel_1: "Citas el mismo día en la mayoría de las ubicaciones.",
+          hero_panel_2: "Horarios extendidos entre semana y sábados disponibles.",
+          hero_panel_3: "Atención bilingüe para pacientes en inglés y español.",
+          hero_panel_4: "Red integrada para una coordinación clínica más eficiente.",
+          services_title: "Servicios",
+          service_1_title: "Atención Primaria y Enfermedades Crónicas",
+          service_1_desc:
+            "Citas el mismo día con médicos de atención primaria y manejo continuo de diabetes, hipertensión y asma.",
+          service_2_title: "Consultas con Especialistas",
+          service_2_desc:
+            "Cardiología, endocrinología, neumología y salud de la mujer, con derivaciones coordinadas dentro de la red HealthCore.",
+          service_3_title: "Salud Preventiva y Bienestar",
+          service_3_desc:
+            "Chequeos, vacunación y revisiones anuales, además de asesoramiento en salud mental y derivaciones a psiquiatría.",
+          why_title: "Por qué HealthCore",
+          why_1_title: "Citas el mismo día",
+          why_1_desc: "Disponibles en la mayoría de las ubicaciones para que recibas atención cuando la necesitas.",
+          why_2_title: "Horarios extendidos",
+          why_2_desc: "Entre semana hasta las 7pm u 8pm y con sábados disponibles en varias clínicas.",
+          why_3_title: "Personal bilingüe",
+          why_3_desc: "Atención en inglés y español en las ubicaciones de EE. UU.",
+          why_4_title: "12 clínicas",
+          why_4_desc: "Presencia en Texas, Florida, Georgia y el Reino Unido.",
+          locations_title: "Ubicaciones en EE. UU.",
+          locations_subtitle: "Conoce las clínicas de HealthCore en Estados Unidos y sus horarios de atención.",
+          loc_1: "HealthCore Austin Central · Austin, TX · (512) 340-8800 · Lun–Vie 7am–8pm · Sáb 9am–3pm",
+          loc_2: "HealthCore Austin North · Austin, TX · (512) 340-8810 · Lun–Vie 8am–7pm",
+          loc_3: "HealthCore San Antonio · San Antonio, TX · (210) 720-4400 · Lun–Vie 8am–6pm · Sáb 9am–1pm",
+          loc_4: "HealthCore Miami · Miami, FL · (305) 510-7700 · Lun–Vie 7am–8pm · Sáb 9am–4pm",
+          loc_5: "HealthCore Orlando · Orlando, FL · (407) 892-6600 · Lun–Vie 8am–6pm",
+          loc_6: "HealthCore Atlanta · Atlanta, GA · (404) 330-9900 · Lun–Vie 8am–7pm",
+          contact_title: "Contacto",
+          contact_subtitle: "Estamos disponibles para ayudarte a mejorar la atención clínica.",
+          hours_label: "Horario de atención:",
+          hours_value: "Lunes a Viernes, 8:00 a 18:00",
+          footer_cta: "Solicitar una cita",
+          copyright: "© 2025 HealthCore. Todos los derechos reservados.",
+        },
+        en: {
+          skip: "Skip to main content",
+          header_tagline: "More connected outpatient care",
+          nav_home: "Home",
+          nav_services: "Services",
+          nav_locations: "Locations",
+          nav_contact: "Contact",
+          header_cta: "Request an appointment",
+          hero_badge: "Trusted outpatient care",
+          hero_title: "Care that fits your life",
+          hero_subtitle:
+            "12 outpatient clinics across the U.S. and U.K. offering same-day appointments, extended hours, and bilingual care, so you get the care you need, when you need it.",
+          hero_cta: "Request an appointment",
+          hero_panel_1: "Same-day appointments at most locations.",
+          hero_panel_2: "Extended weekday hours and Saturday availability.",
+          hero_panel_3: "Bilingual care for patients in English and Spanish.",
+          hero_panel_4: "Integrated network for more efficient clinical coordination.",
+          services_title: "Services",
+          service_1_title: "Primary Care and Chronic Conditions",
+          service_1_desc:
+            "Same-day appointments with primary care physicians and ongoing management of diabetes, hypertension, and asthma.",
+          service_2_title: "Specialist Consultations",
+          service_2_desc:
+            "Cardiology, endocrinology, pulmonology, and women's health, with coordinated referrals across the HealthCore network.",
+          service_3_title: "Preventive Health and Wellness",
+          service_3_desc:
+            "Checkups, vaccinations, and annual screenings, plus mental health counseling and psychiatry referrals.",
+          why_title: "Why HealthCore",
+          why_1_title: "Same-day appointments",
+          why_1_desc: "Available at most locations so you can get care when you need it.",
+          why_2_title: "Extended hours",
+          why_2_desc: "Weekdays up to 7pm or 8pm, with Saturday availability at several clinics.",
+          why_3_title: "Bilingual staff",
+          why_3_desc: "Care in English and Spanish across U.S. locations.",
+          why_4_title: "12 clinics",
+          why_4_desc: "Presence in Texas, Florida, Georgia, and the United Kingdom.",
+          locations_title: "U.S. Locations",
+          locations_subtitle: "Explore HealthCore clinics in the United States and their opening hours.",
+          loc_1: "HealthCore Austin Central · Austin, TX · (512) 340-8800 · Mon-Fri 7am-8pm · Sat 9am-3pm",
+          loc_2: "HealthCore Austin North · Austin, TX · (512) 340-8810 · Mon-Fri 8am-7pm",
+          loc_3: "HealthCore San Antonio · San Antonio, TX · (210) 720-4400 · Mon-Fri 8am-6pm · Sat 9am-1pm",
+          loc_4: "HealthCore Miami · Miami, FL · (305) 510-7700 · Mon-Fri 7am-8pm · Sat 9am-4pm",
+          loc_5: "HealthCore Orlando · Orlando, FL · (407) 892-6600 · Mon-Fri 8am-6pm",
+          loc_6: "HealthCore Atlanta · Atlanta, GA · (404) 330-9900 · Mon-Fri 8am-7pm",
+          contact_title: "Contact",
+          contact_subtitle: "We are here to help you access quality outpatient care.",
+          hours_label: "Support hours:",
+          hours_value: "Monday to Friday, 8:00 to 18:00",
+          footer_cta: "Request an appointment",
+          copyright: "© 2025 HealthCore. All rights reserved.",
+        },
+      };
+
+      const setLanguage = (lang) => {
+        const selected = translations[lang] ? lang : "es";
+        document.documentElement.lang = selected;
+
+        document.querySelectorAll("[data-i18n]").forEach((element) => {
+          const key = element.dataset.i18n;
+          if (translations[selected][key]) {
+            element.textContent = translations[selected][key];
+          }
+        });
+
+        langButtons.forEach((button) => {
+          const active = button.dataset.lang === selected;
+          button.classList.toggle("bg-teal-700", active);
+          button.classList.toggle("text-white", active);
+          button.classList.toggle("text-slate-700", !active);
+        });
+
+        const isExpanded = mobileMenuButton?.getAttribute("aria-expanded") === "true";
+        if (mobileMenuButton) {
+          mobileMenuButton.textContent = selected === "en" ? "Menu" : "Menu";
+          mobileMenuButton.setAttribute(
+            "aria-label",
+            isExpanded
+              ? selected === "en"
+                ? "Close navigation menu"
+                : "Cerrar menú de navegación"
+              : selected === "en"
+                ? "Open navigation menu"
+                : "Abrir menú de navegación"
+          );
+        }
+      };
+
+      langButtons.forEach((button) => {
+        button.addEventListener("click", () => setLanguage(button.dataset.lang));
+      });
+
+      if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener("click", () => {
+          const isExpanded = mobileMenuButton.getAttribute("aria-expanded") === "true";
+          mobileMenuButton.setAttribute("aria-expanded", String(!isExpanded));
+          const lang = document.documentElement.lang === "en" ? "en" : "es";
+          mobileMenuButton.setAttribute(
+            "aria-label",
+            isExpanded
+              ? lang === "en"
+                ? "Open navigation menu"
+                : "Abrir menú de navegación"
+              : lang === "en"
+                ? "Close navigation menu"
+                : "Cerrar menú de navegación"
+          );
+          mobileMenu.classList.toggle("hidden", isExpanded);
+        });
+      }
+
+      setLanguage("es");
+    </script>
+  </body>
+</html>

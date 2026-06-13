@@ -64,6 +64,41 @@ ai-engineering-company-project-monorepo/
 
 ---
 
+## Run Locally In Codespaces (npx)
+
+For this milestone web delivery (`index.html` + `application.html`), you can serve the project with `npx`:
+
+```bash
+npx http-server . -p 3000 -c-1
+```
+
+- Open: `http://localhost:3000/index.html`
+- Form page: `http://localhost:3000/application.html`
+- `-c-1` disables cache to avoid stale JS/CSS while iterating.
+
+Alternative:
+
+```bash
+npx serve . -l 3000
+```
+
+---
+
+## PageSpeed Verification (Vercel)
+
+After deploying to Vercel, validate performance with PageSpeed Insights:
+
+1. Publish and copy your production URL.
+2. Run it in `https://pagespeed.web.dev/`.
+3. Target score: minimum `80`, ideal `90+`.
+4. If score is low, prioritize:
+	- compressed and properly sized images
+	- semantic HTML and clean DOM structure
+	- removing unused JS/CSS and keeping scripts minimal
+	- avoiding cache issues during testing (`-c-1` in local preview)
+
+---
+
 ## Milestones (reference)
 
 | Milestone | Focus        | Typical deliverables                        |
