@@ -1,9 +1,149 @@
-const form = document.getElementById("registrationForm");
+const form = document.getElementById("inquiryForm");
 
 if (form) {
+  const langButtons = document.querySelectorAll(".lang-toggle");
+  let currentLang = "es";
+  const LANGUAGE_STORAGE_KEY = "healthcoreLang";
+
+  const readSavedLanguage = () => {
+    try {
+      const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      return saved === "en" || saved === "es" ? saved : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveLanguage = (lang) => {
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    } catch {
+      // Ignore storage errors (private mode or blocked storage).
+    }
+  };
+
+  const t = {
+    en: {
+      errors: {
+        first_name: "First name must contain only letters and be at least 2 characters long",
+        last_name: "Last name must contain only letters and be at least 2 characters long",
+        invalid_dob: "Please enter a valid date of birth. The patient must be between 0 and 120 years old",
+        email: "Please enter a valid email address (example: name@provider.com)",
+        phone: "Phone number must include a country code (example: +1 305 555 0191)",
+        preferred_language: "Please select your preferred language",
+        preferred_clinic: "Please select the clinic you would like to visit",
+        preferred_date: "Please select a date at least 1 business day from today and no more than 60 days ahead",
+        preferred_time: "Please select your preferred time slot",
+        service_type: "Please select the type of care you are looking for",
+        paediatric_age:
+          "Paediatric Care is available for patients under 18 years old. Please review the date of birth or select a different service.",
+        new_patient: "Please indicate whether this is your first visit to HealthCore",
+        has_insurance: "Please indicate whether you have health insurance",
+        insurance_provider_required: "Please enter the name of your insurance provider",
+        insurance_member_required: "Member ID must be between 6 and 20 alphanumeric characters",
+        insurance_member_format: "Member ID must be between 6 and 20 alphanumeric characters",
+        health_concern_min:
+          "Please describe your medical concern in at least 20 characters ({{X}} characters remaining)",
+        contact_consent: "You must give your consent to be contacted before submitting this form",
+      },
+      count: "{{count}} / 500 characters",
+      evening_warning:
+        "Warning: {{clinic}} closes at {{hour}}. The Evening (5pm-8pm) time slot may not be available.",
+    },
+    es: {
+      errors: {
+        first_name: "El nombre debe contener solo letras y tener al menos 2 caracteres",
+        last_name: "El apellido debe contener solo letras y tener al menos 2 caracteres",
+        invalid_dob: "Ingresa una fecha de nacimiento válida. El paciente debe tener entre 0 y 120 años",
+        email: "Ingresa un correo electrónico válido (ejemplo: nombre@proveedor.com)",
+        phone: "El teléfono debe incluir un código de país (ejemplo: +1 305 555 0191)",
+        preferred_language: "Selecciona tu idioma preferido",
+        preferred_clinic: "Selecciona la clínica que te gustaría visitar",
+        preferred_date:
+          "Selecciona una fecha de al menos 1 día hábil desde hoy y no más de 60 días hacia adelante",
+        preferred_time: "Selecciona tu franja horaria preferida",
+        service_type: "Selecciona el tipo de atención que estás buscando",
+        paediatric_age:
+          "Paediatric Care está disponible para pacientes menores de 18 años. Revisa la fecha de nacimiento o selecciona un servicio diferente.",
+        new_patient: "Indica si esta es tu primera visita a HealthCore",
+        has_insurance: "Indica si tienes seguro médico",
+        insurance_provider_required: "Ingresa el nombre de tu aseguradora",
+        insurance_member_required: "El ID de afiliado debe tener entre 6 y 20 caracteres alfanuméricos",
+        insurance_member_format: "El ID de afiliado debe tener entre 6 y 20 caracteres alfanuméricos",
+        health_concern_min: "Describe tu consulta médica en al menos 20 caracteres (faltan {{X}} caracteres)",
+        contact_consent: "Debes dar tu consentimiento para ser contactado antes de enviar este formulario",
+      },
+      count: "{{count}} / 500 caracteres",
+      evening_warning:
+        "Advertencia: {{clinic}} cierra a las {{hour}}. La franja Noche (5pm-8pm) podria no estar disponible.",
+    },
+  };
+
+  const getMessage = (key, vars = {}) => {
+    const selectedLang = currentLang === "en" ? "en" : "es";
+    const parts = key.split(".");
+    let value = t[selectedLang];
+    for (const part of parts) {
+      value = value?.[part];
+    }
+    if (typeof value !== "string") {
+      return "";
+    }
+
+    return Object.entries(vars).reduce(
+      (acc, [varKey, varValue]) => acc.replaceAll(`{{${varKey}}}`, String(varValue)),
+      value
+    );
+  };
+
+  const applyLanguageToPage = (lang) => {
+    currentLang = lang === "en" ? "en" : "es";
+    document.documentElement.lang = currentLang;
+    saveLanguage(currentLang);
+
+    document.querySelectorAll("[data-en][data-es]").forEach((element) => {
+      element.textContent = currentLang === "en" ? element.dataset.en : element.dataset.es;
+    });
+
+    document.querySelectorAll("[data-placeholder-en][data-placeholder-es]").forEach((element) => {
+      element.setAttribute(
+        "placeholder",
+        currentLang === "en" ? element.dataset.placeholderEn : element.dataset.placeholderEs
+      );
+    });
+
+    document.querySelectorAll("[data-aria-label-en][data-aria-label-es]").forEach((element) => {
+      element.setAttribute(
+        "aria-label",
+        currentLang === "en" ? element.dataset.ariaLabelEn : element.dataset.ariaLabelEs
+      );
+    });
+
+    const titleElement = document.querySelector("title[data-title-en][data-title-es]");
+    if (titleElement) {
+      document.title = currentLang === "en" ? titleElement.dataset.titleEn : titleElement.dataset.titleEs;
+    }
+
+    const descriptionMeta = document.querySelector('meta[name="description"][data-content-en][data-content-es]');
+    if (descriptionMeta) {
+      descriptionMeta.setAttribute(
+        "content",
+        currentLang === "en" ? descriptionMeta.dataset.contentEn : descriptionMeta.dataset.contentEs
+      );
+    }
+
+    langButtons.forEach((button) => {
+      const active = button.dataset.lang === currentLang;
+      button.classList.toggle("bg-teal-700", active);
+      button.classList.toggle("text-white", active);
+      button.classList.toggle("text-slate-700", !active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  };
+
   const formMessage = document.getElementById("formMessage");
   const formSuccess = document.getElementById("formSuccess");
-  const newRegistrationButton = document.getElementById("newRegistrationButton");
+  const newInquiryButton = document.getElementById("newInquiryButton");
   const healthConcern = document.getElementById("health_concern");
   const healthConcernCount = document.getElementById("healthConcernCount");
   const patientIdGroup = document.getElementById("patientIdGroup");
@@ -78,7 +218,7 @@ if (form) {
       validate: (value) => {
         const cleanValue = value.trim();
         if (!cleanValue || !/^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/.test(cleanValue) || cleanValue.length < 2 || cleanValue.length > 50) {
-          return "El nombre debe contener solo letras y tener al menos 2 caracteres";
+          return getMessage("errors.first_name");
         }
         return "";
       },
@@ -89,7 +229,7 @@ if (form) {
       validate: (value) => {
         const cleanValue = value.trim();
         if (!cleanValue || !/^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/.test(cleanValue) || cleanValue.length < 2 || cleanValue.length > 50) {
-          return "El apellido debe contener solo letras y tener al menos 2 caracteres";
+          return getMessage("errors.last_name");
         }
         return "";
       },
@@ -98,7 +238,7 @@ if (form) {
       input: document.getElementById("date_of_birth"),
       error: document.getElementById("dateOfBirthError"),
       validate: (value) => {
-        const invalidDobMessage = "Ingresa una fecha de nacimiento válida. El paciente debe tener entre 0 y 120 años";
+        const invalidDobMessage = getMessage("errors.invalid_dob");
         if (!value) {
           return invalidDobMessage;
         }
@@ -125,7 +265,7 @@ if (form) {
       validate: (value) => {
         const cleanValue = value.trim();
         if (!cleanValue || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanValue)) {
-          return "Ingresa un correo electrónico válido (ejemplo: nombre@proveedor.com)";
+          return getMessage("errors.email");
         }
         return "";
       },
@@ -136,7 +276,7 @@ if (form) {
       validate: (value) => {
         const cleanValue = value.trim();
         if (!cleanValue || !/^\+[1-9]\d{0,3}[\s-]?\d[\d\s-]{6,}$/.test(cleanValue)) {
-          return "El teléfono debe incluir un código de país (ejemplo: +1 305 555 0191)";
+          return getMessage("errors.phone");
         }
         return "";
       },
@@ -146,7 +286,7 @@ if (form) {
       error: document.getElementById("preferredLanguageError"),
       validate: (value) => {
         if (!value.trim()) {
-          return "Selecciona un idioma preferido.";
+          return getMessage("errors.preferred_language");
         }
         return "";
       },
@@ -156,7 +296,7 @@ if (form) {
       error: document.getElementById("preferredClinicError"),
       validate: (value) => {
         if (!value.trim()) {
-          return "Selecciona una clínica preferida.";
+          return getMessage("errors.preferred_clinic");
         }
         return "";
       },
@@ -165,7 +305,7 @@ if (form) {
       input: document.getElementById("preferred_date"),
       error: document.getElementById("preferredDateError"),
       validate: (value) => {
-        const preferredDateMessage = "Selecciona una fecha de al menos 1 día hábil desde hoy y no más de 60 días hacia adelante";
+        const preferredDateMessage = getMessage("errors.preferred_date");
         if (!value) {
           return preferredDateMessage;
         }
@@ -190,7 +330,7 @@ if (form) {
       error: document.getElementById("preferredTimeError"),
       validate: (value) => {
         if (!value.trim()) {
-          return "Selecciona una franja horaria.";
+          return getMessage("errors.preferred_time");
         }
         return "";
       },
@@ -200,7 +340,7 @@ if (form) {
       error: document.getElementById("serviceTypeError"),
       validate: (value) => {
         if (!value.trim()) {
-          return "Selecciona un servicio requerido.";
+          return getMessage("errors.service_type");
         }
 
         if (value === "Paediatric Care") {
@@ -211,7 +351,7 @@ if (form) {
             today.setHours(0, 0, 0, 0);
             const age = getAgeInYears(dob, today);
             if (age >= 18) {
-              return "Paediatric Care está disponible para pacientes menores de 18 años. Revisa la fecha de nacimiento o selecciona un servicio diferente.";
+              return getMessage("errors.paediatric_age");
             }
           }
         }
@@ -224,7 +364,7 @@ if (form) {
       error: document.getElementById("newPatientError"),
       validate: () => {
         if (!getSelectedRadioValue("new_patient")) {
-          return "Selecciona si es tu primera visita.";
+          return getMessage("errors.new_patient");
         }
         return "";
       },
@@ -241,9 +381,6 @@ if (form) {
         if (!cleanValue) {
           return "";
         }
-        if (!/^HC-[A-Za-z0-9]{6}$/.test(cleanValue)) {
-          return "El ID debe tener formato HC- seguido de 6 caracteres alfanuméricos.";
-        }
         return "";
       },
     },
@@ -252,7 +389,7 @@ if (form) {
       error: document.getElementById("hasInsuranceError"),
       validate: () => {
         if (!getSelectedRadioValue("has_insurance")) {
-          return "Selecciona si tienes seguro médico.";
+          return getMessage("errors.has_insurance");
         }
         return "";
       },
@@ -266,10 +403,7 @@ if (form) {
           return "";
         }
         if (!cleanValue) {
-          return "El proveedor de seguro es obligatorio cuando tienes seguro.";
-        }
-        if (cleanValue.length > 100) {
-          return "El proveedor de seguro no puede superar 100 caracteres.";
+          return getMessage("errors.insurance_provider_required");
         }
         return "";
       },
@@ -283,10 +417,10 @@ if (form) {
           return "";
         }
         if (!cleanValue) {
-          return "El ID de miembro del seguro es obligatorio cuando tienes seguro.";
+          return getMessage("errors.insurance_member_required");
         }
         if (!/^[A-Za-z0-9]{6,20}$/.test(cleanValue)) {
-          return "El ID de miembro debe tener entre 6 y 20 caracteres alfanuméricos.";
+          return getMessage("errors.insurance_member_format");
         }
         return "";
       },
@@ -298,10 +432,7 @@ if (form) {
         const cleanValue = value.trim();
         if (cleanValue.length < 20) {
           const missingChars = 20 - cleanValue.length;
-          return `Describe tu consulta médica en al menos 20 caracteres (faltan ${missingChars} caracteres)`;
-        }
-        if (cleanValue.length > 500) {
-          return "La descripcion no puede superar 500 caracteres.";
+          return getMessage("errors.health_concern_min", { X: missingChars });
         }
         return "";
       },
@@ -311,7 +442,7 @@ if (form) {
       error: document.getElementById("contactConsentError"),
       validate: (_, input) => {
         if (!input.checked) {
-          return "Debes dar tu consentimiento para ser contactado antes de enviar este formulario";
+          return getMessage("errors.contact_consent");
         }
         return "";
       },
@@ -394,7 +525,7 @@ if (form) {
     if (!healthConcern || !healthConcernCount) {
       return;
     }
-    healthConcernCount.textContent = `${healthConcern.value.length} / 500 caracteres`;
+    healthConcernCount.textContent = getMessage("count", { count: healthConcern.value.length });
   };
 
   const updateEveningAvailabilityWarning = () => {
@@ -405,7 +536,7 @@ if (form) {
     const selectedTime = fields.preferred_time?.input?.value || "";
     const selectedClinic = fields.preferred_clinic?.input?.value || "";
 
-    if (selectedTime !== "Evening (5pm–8pm)") {
+    if (selectedTime !== "Evening (5pm-8pm)") {
       eveningAvailabilityWarning.textContent = "";
       eveningAvailabilityWarning.classList.add("hidden");
       return;
@@ -413,13 +544,29 @@ if (form) {
 
     const clinicClosingHour = eveningLimitedClinics[selectedClinic];
     if (clinicClosingHour) {
-      eveningAvailabilityWarning.textContent = `Advertencia: ${selectedClinic} cierra a las ${clinicClosingHour}. La franja Evening (5pm–8pm) podría no estar disponible.`;
+      eveningAvailabilityWarning.textContent = getMessage("evening_warning", {
+        clinic: selectedClinic,
+        hour: clinicClosingHour,
+      });
       eveningAvailabilityWarning.classList.remove("hidden");
       return;
     }
 
     eveningAvailabilityWarning.textContent = "";
     eveningAvailabilityWarning.classList.add("hidden");
+  };
+
+  const updateVisibleErrorsForLanguage = () => {
+    Object.keys(fields).forEach((fieldKey) => {
+      const field = fields[fieldKey];
+      if (field?.error && !field.error.classList.contains("hidden")) {
+        validateField(fieldKey);
+      }
+    });
+
+    if (formMessage && formMessage.className.includes("border-red-200")) {
+      formMessage.textContent = "";
+    }
   };
 
   Object.keys(fields).forEach((fieldKey) => {
@@ -524,8 +671,8 @@ if (form) {
     }
 
     if (!allValid) {
-      formMessage.textContent = "Revisa los campos marcados antes de continuar.";
-      formMessage.className = "w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 sm:w-auto";
+      formMessage.textContent = "";
+      formMessage.className = "text-sm font-medium";
 
       if (firstInvalidKey && fields[firstInvalidKey]?.input) {
         fields[firstInvalidKey].input.focus();
@@ -560,8 +707,8 @@ if (form) {
     }
   });
 
-  if (newRegistrationButton) {
-    newRegistrationButton.addEventListener("click", () => {
+  if (newInquiryButton) {
+    newInquiryButton.addEventListener("click", () => {
       if (formSuccess) {
         formSuccess.classList.add("hidden");
       }
@@ -577,4 +724,15 @@ if (form) {
       }
     });
   }
+
+  langButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      applyLanguageToPage(button.dataset.lang);
+      updateHealthConcernCount();
+      updateEveningAvailabilityWarning();
+      updateVisibleErrorsForLanguage();
+    });
+  });
+
+  applyLanguageToPage(readSavedLanguage() || (document.documentElement.lang === "en" ? "en" : "es"));
 }

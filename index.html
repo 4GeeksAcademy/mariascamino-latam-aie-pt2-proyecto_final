@@ -134,7 +134,7 @@
         <a
           href="application.html"
           class="hidden rounded-xl bg-teal-700 px-4 py-2 text-center text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:bg-teal-800 md:inline-flex"
-          aria-label="Ir al formulario de registro"
+          aria-label="Ir al formulario de consulta"
           ><span data-i18n="header_cta">Solicitar una cita</span></a
         >
         <button
@@ -187,7 +187,7 @@
               <a
                 href="application.html"
                 class="rounded-xl bg-white px-5 py-3 text-center text-sm font-semibold text-teal-900 shadow transition hover:-translate-y-0.5 hover:bg-slate-100"
-                aria-label="Comenzar registro de paciente"
+                aria-label="Comenzar consulta de paciente"
                 ><span data-i18n="hero_cta">Solicitar una cita</span></a
               >
             </div>
@@ -318,9 +318,10 @@
         </section>
         <address class="not-italic text-sm text-slate-700">
           <p class="font-semibold">HealthCore</p>
-          <p class="mt-1">Email: <a class="text-teal-700 hover:text-teal-900" href="mailto:info@healthcore.com">info@healthcore.com</a></p>
-          <p class="mt-1">Teléfono: <a class="text-teal-700 hover:text-teal-900" href="tel:+15123408800">(512) 340-8800</a></p>
-          <p class="mt-1">Teléfono: <a class="text-teal-700 hover:text-teal-900" href="tel:+13055107700">(305) 510-7700</a></p>
+          <p class="mt-1"><span data-i18n="contact_general_label">Consultas generales:</span> <a class="text-teal-700 hover:text-teal-900" href="mailto:info@healthcore.com">info@healthcore.com</a></p>
+          <p class="mt-1"><span data-i18n="contact_austin_label">Sede central de Austin:</span> <a class="text-teal-700 hover:text-teal-900" href="tel:+15123408800">(512) 340-8800</a></p>
+          <p class="mt-1"><span data-i18n="contact_miami_label">Miami:</span> <a class="text-teal-700 hover:text-teal-900" href="tel:+13055107700">(305) 510-7700</a></p>
+          <p class="mt-1"><span data-i18n="contact_uk_label">Reino Unido (Londres):</span> <a class="text-teal-700 hover:text-teal-900" href="tel:+442079460100">+44 20 7946 0100</a></p>
         </address>
         <section class="text-sm text-slate-600">
           <p data-i18n="hours_label">Horario de atención:</p>
@@ -330,6 +331,14 @@
             class="mt-4 inline-block rounded-xl bg-teal-700 px-4 py-2 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-teal-800"
             ><span data-i18n="footer_cta">Solicitar una cita</span></a
           >
+          <div class="mt-4">
+            <p class="font-semibold text-slate-800" data-i18n="social_title">Redes sociales</p>
+            <ul class="mt-2 space-y-1">
+              <li><a href="https://linkedin.com/company/healthcore" class="text-teal-700 hover:text-teal-900" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+              <li><a href="https://facebook.com/healthcore" class="text-teal-700 hover:text-teal-900" target="_blank" rel="noopener noreferrer">Facebook</a></li>
+              <li><a href="https://instagram.com/healthcore" class="text-teal-700 hover:text-teal-900" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+            </ul>
+          </div>
         </section>
       </div>
       <p class="border-t border-slate-200 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8" data-i18n="copyright">© 2025 HealthCore. Todos los derechos reservados.</p>
@@ -338,6 +347,24 @@
       const mobileMenuButton = document.getElementById("mobile-menu-button");
       const mobileMenu = document.getElementById("menu-principal");
       const langButtons = document.querySelectorAll(".lang-toggle");
+      const LANGUAGE_STORAGE_KEY = "healthcoreLang";
+
+      const readSavedLanguage = () => {
+        try {
+          const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+          return saved === "en" || saved === "es" ? saved : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const saveLanguage = (lang) => {
+        try {
+          localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+        } catch {
+          // Ignore storage errors (private mode or blocked storage).
+        }
+      };
 
       const translations = {
         es: {
@@ -386,9 +413,14 @@
           loc_6: "HealthCore Atlanta · Atlanta, GA · (404) 330-9900 · Lun–Vie 8am–7pm",
           contact_title: "Contacto",
           contact_subtitle: "Estamos disponibles para ayudarte a mejorar la atención clínica.",
+          contact_general_label: "Consultas generales:",
+          contact_austin_label: "Sede central de Austin:",
+          contact_miami_label: "Miami:",
+          contact_uk_label: "Reino Unido (Londres):",
           hours_label: "Horario de atención:",
           hours_value: "Lunes a Viernes, 8:00 a 18:00",
           footer_cta: "Solicitar una cita",
+          social_title: "Redes sociales",
           copyright: "© 2025 HealthCore. Todos los derechos reservados.",
         },
         en: {
@@ -437,9 +469,14 @@
           loc_6: "HealthCore Atlanta · Atlanta, GA · (404) 330-9900 · Mon-Fri 8am-7pm",
           contact_title: "Contact",
           contact_subtitle: "We are here to help you access quality outpatient care.",
+          contact_general_label: "General inquiries:",
+          contact_austin_label: "Austin headquarters:",
+          contact_miami_label: "Miami:",
+          contact_uk_label: "United Kingdom (London):",
           hours_label: "Support hours:",
           hours_value: "Monday to Friday, 8:00 to 18:00",
           footer_cta: "Request an appointment",
+          social_title: "Social media",
           copyright: "© 2025 HealthCore. All rights reserved.",
         },
       };
@@ -447,6 +484,7 @@
       const setLanguage = (lang) => {
         const selected = translations[lang] ? lang : "es";
         document.documentElement.lang = selected;
+        saveLanguage(selected);
 
         document.querySelectorAll("[data-i18n]").forEach((element) => {
           const key = element.dataset.i18n;
@@ -503,7 +541,7 @@
         });
       }
 
-      setLanguage("es");
+      setLanguage(readSavedLanguage() || "es");
     </script>
   </body>
 </html>
