@@ -6,11 +6,13 @@
     "build:css": "tailwindcss -c tailwind.config.js -i src/styles.css -o assets/output.css --minify",
     "build": "npm run build:css && mkdir -p dist/assets/images && cp index.html application.html validation.js dist/ && cp assets/output.css dist/assets/output.css && cp assets/images/*.webp dist/assets/images/",
     "dev": "npx http-server . -p 3000 -c-1",
-    "preview": "npx http-server dist -p 4173 -c-1"
+    "preview": "npx http-server dist -p 4173 -c-1",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.14"
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.5.0"
   }
 }
