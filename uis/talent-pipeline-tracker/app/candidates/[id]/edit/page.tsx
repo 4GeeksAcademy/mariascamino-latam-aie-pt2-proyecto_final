@@ -1,5 +1,5 @@
-import { CandidateDetailView } from "@/components/CandidateDetailView";
+import { EditCandidateView } from "@/components/EditCandidateView";
 
 export default function Page() {
-  return <CandidateDetailView />;
+  return <EditCandidateView />;
 }

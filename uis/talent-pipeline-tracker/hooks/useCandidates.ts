@@ -22,8 +22,19 @@ export function useCandidates(filters: CandidateFilters) {
       try {
         const response = await fetchCandidates(filters);
         if (cancelled) return;
-        setCandidates(response.data);
-        setTotal(response.total);
+        const normalizedSearch = filters.search?.trim().toLowerCase() ?? "";
+        const filteredData = normalizedSearch
+          ? response.data.filter((candidate) => {
+              const fullName = candidate.full_name.toLowerCase();
+              const email = candidate.email.toLowerCase();
+              return (
+                fullName.includes(normalizedSearch) || email.includes(normalizedSearch)
+              );
+            })
+          : response.data;
+
+        setCandidates(filteredData);
+        setTotal(filteredData.length);
         setState("success");
       } catch (err) {
         if (cancelled) return;

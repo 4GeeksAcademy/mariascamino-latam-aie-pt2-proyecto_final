@@ -53,13 +53,16 @@ export function Filters() {
         ))}
       </select>
 
-      <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+      <form
+        onSubmit={handleSearchSubmit}
+        className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto"
+      >
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre o posición..."
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          placeholder="Buscar por nombre o email..."
+          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm sm:w-96"
         />
         <button
           type="submit"

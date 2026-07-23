@@ -4,18 +4,18 @@ import type { CandidateStatus, CandidateStage } from "@/types/candidate";
 // Los valores crudos del API (ej. "in_progress") nunca deben renderizarse
 // directamente — siempre pasan por este mapa primero.
 export const STATUS_LABELS: Record<CandidateStatus, string> = {
-  received: "Received",
-  in_progress: "In progress",
-  selected: "Selected",
-  discarded: "Discarded",
+  received: "Recibido",
+  in_progress: "En proceso",
+  selected: "Seleccionado",
+  discarded: "Descartado",
 };
 
 export const STAGE_LABELS: Record<CandidateStage, string> = {
-  pending: "Pending review",
-  review: "Under review",
-  personal_interview: "Personal interview",
-  technical_interview: "Technical interview",
-  offer_presented: "Offer presented",
+  pending: "Pendiente de revision",
+  review: "En revision",
+  personal_interview: "Entrevista personal",
+  technical_interview: "Entrevista tecnica",
+  offer_presented: "Oferta presentada",
 };
 
 // Arrays de pares [valor_crudo, etiqueta] para armar <select> de filtros
