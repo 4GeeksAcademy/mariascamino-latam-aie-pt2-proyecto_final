@@ -2,3 +2,10 @@
 node_modules/
 dist/
 assets/output.css
+.next/
+build/
+out/
+*.log
+.next-boost
+.env
+.env.local

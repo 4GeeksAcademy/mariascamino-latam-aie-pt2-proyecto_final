@@ -1,5 +1,0 @@
-1:"$Sreact.fragment"
-2:I[48226,["/_next/static/chunks/08r04m-n2airo.js","/_next/static/chunks/0cr3kyhpzcs-i.js"],"ViewportBoundary"]
-3:I[48226,["/_next/static/chunks/08r04m-n2airo.js","/_next/static/chunks/0cr3kyhpzcs-i.js"],"MetadataBoundary"]
-4:"$Sreact.suspense"
-0:{"rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"HealthCore · Backoffice"}],["$","meta","1",{"name":"description","content":"Panel interno de administración y gestión de HealthCore — clínicas, pacientes, citas y reportes."}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"w6KsfxXBpf9idRR3-sxR1"}

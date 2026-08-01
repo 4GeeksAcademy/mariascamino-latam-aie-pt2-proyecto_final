@@ -1,3 +1,0 @@
-module.exports=[45181,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(58518);a.n(d("[project]/uis/backoffice/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},50189,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(58518);a.n(d("[project]/uis/backoffice/node_modules/next/dist/client/components/builtin/global-error.js"))},56212,a=>{"use strict";a.i(45181);var b=a.i(50189);a.n(b)},90901,a=>{a.n(a.i(56212))}];
-
-//# sourceMappingURL=0jo__next_dist_client_components_builtin_global-error_1hg-ff6.js.map
