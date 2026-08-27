@@ -16,6 +16,7 @@ const NAV_SECTIONS = [
     items: [
       { href: "/reportes", label: "Reportes", icon: "△" },
       { href: "/metricas", label: "Métricas", icon: "◇" },
+      { href: "/incidents", label: "Incident Analyzer", icon: "⚠" },
     ],
   },
   {
