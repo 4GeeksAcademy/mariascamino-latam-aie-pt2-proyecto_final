@@ -79,6 +79,7 @@ INVALID_RULES = OrderedDict(
         ("missing_or_invalid_category", "Invalid or missing category"),
         ("empty_description", "Empty description"),
         ("missing_or_invalid_patient_id", "Missing patient_id"),
+        ("missing_or_invalid_status", "Invalid or missing status"),
         ("closed_without_score", "Closed case, no score"),
         ("score_out_of_range", "Satisfaction score out of range"),
     ]
@@ -123,7 +124,7 @@ def classify_record(row):
         return "missing_or_invalid_patient_id"
 
     if status not in VALID_STATUSES:
-        return "missing_or_invalid_category"
+        return "missing_or_invalid_status"
 
     if status == "CLOSED" and raw_score == "":
         return "closed_without_score"
