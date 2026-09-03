@@ -2,3 +2,17 @@
 node_modules/
 dist/
 assets/output.css
+
+# Supplier Directory API (services/api)
+services/api/__pycache__/
+services/api/*.egg-info/
+services/api/db.json
+services/api/.venv/
+services/api/**/__pycache__/
+*.pyc
+
+# Backoffice frontend (uis/backoffice)
+uis/backoffice/node_modules/
+uis/backoffice/.next/
+uis/backoffice/.env.local
+uis/backoffice/next-env.d.ts
