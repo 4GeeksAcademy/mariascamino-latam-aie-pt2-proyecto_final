@@ -2,7 +2,7 @@
 
 import { useEffect, useState, FormEvent } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+import { apiFetch } from "../../../lib/api";
 
 const CATEGORIES = [
   "medical_supplies",
@@ -78,7 +78,7 @@ export default function SuppliersPage() {
       const params = new URLSearchParams();
       if (countryFilter) params.set("country", countryFilter);
       if (categoryFilter) params.set("category", categoryFilter);
-      const res = await fetch(`${API_URL}/suppliers?${params.toString()}`);
+      const res = await apiFetch(`/suppliers?${params.toString()}`);
       if (!res.ok) throw new Error(`Error ${res.status} al cargar proveedores`);
       const data: Supplier[] = await res.json();
       setSuppliers(data);
@@ -121,7 +121,7 @@ export default function SuppliersPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/suppliers`, {
+      const res = await apiFetch(`/suppliers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -169,7 +169,7 @@ export default function SuppliersPage() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/suppliers/${supplierId}/rate`, {
+      const res = await apiFetch(`/suppliers/${supplierId}/rate`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ monthly_rate: rateNumber }),
@@ -188,7 +188,7 @@ export default function SuppliersPage() {
   const handleStatusToggle = async (supplier: Supplier) => {
     const nextStatus = supplier.status === "active" ? "suspended" : "active";
     try {
-      const res = await fetch(`${API_URL}/suppliers/${supplier.id}/status`, {
+      const res = await apiFetch(`/suppliers/${supplier.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: nextStatus }),
