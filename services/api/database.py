@@ -1,9 +1,10 @@
-# database.py
 from pathlib import Path
-
 from tinydb import TinyDB
 
 DB_PATH = Path(__file__).parent / "db.json"
-
 db = TinyDB(DB_PATH)
+
 suppliers_table = db.table("suppliers")
+users_table = db.table("users")
+profiles_table = db.table("profiles")
+password_reset_tokens_table = db.table("password_reset_tokens")
