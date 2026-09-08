@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
 
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justReset = searchParams.get("reset") === "success";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,6 +45,12 @@ export default function LoginPage() {
         </p>
       </div>
 
+      {justReset && (
+        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+          Tu contraseña fue actualizada. Ya puedes iniciar sesión.
+        </p>
+      )}
+
       <form
         onSubmit={handleSubmit}
         className="space-y-4 rounded-lg border border-slate-200 bg-white p-6"
@@ -59,7 +67,12 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-500">Contraseña</label>
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-medium text-slate-500">Contraseña</label>
+            <Link href="/forgot-password" className="text-xs font-medium text-slate-600 underline">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
           <input
             required
             type="password"
@@ -90,5 +103,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-slate-400">Cargando…</p>}>
+      <LoginForm />
+    </Suspense>
   );
 }

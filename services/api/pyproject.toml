@@ -12,6 +12,7 @@ dependencies = [
     "libpass[bcrypt]>=1.9.3",
     "python-dotenv>=1.2.3",
     "python-multipart>=0.0.32",
+    "sendgrid>=6.11.0",
 ]
 
 [project.scripts]
@@ -22,5 +23,5 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "models", "database", "seed", "security", "auth_models"]
+py-modules = ["main", "models", "database", "seed", "security", "auth_models", "password_reset", "email_service"]
 packages = ["routes"]
