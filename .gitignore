@@ -16,3 +16,4 @@ uis/backoffice/node_modules/
 uis/backoffice/.next/
 uis/backoffice/.env.local
 uis/backoffice/next-env.d.ts
+services/api/.env
