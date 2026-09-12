@@ -55,12 +55,20 @@ def create_user(payload: UserCreate):
 
 @router.get("", response_model=list[UserResponse])
 def list_users(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != Role.ADMIN.value:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo un admin puede listar usuarios")
     return [_user_to_response(doc) for doc in users_table.all()]
 
 
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
     doc = _get_user_or_404(user_id)
+
+    is_self = current_user["id"] == user_id
+    is_admin = current_user["role"] == Role.ADMIN.value
+    if not is_self and not is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes ver a otro usuario")
+
     return _user_to_response(doc)
 
 

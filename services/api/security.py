@@ -13,7 +13,10 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+_access_token_expire_raw = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
+if not _access_token_expire_raw:
+    raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES no está definido. Revisa tu archivo .env")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(_access_token_expire_raw)
 
 if not SECRET_KEY:
     raise RuntimeError("JWT_SECRET_KEY no está definido. Revisa tu archivo .env")
