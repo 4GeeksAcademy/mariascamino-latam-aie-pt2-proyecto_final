@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 
-import { apiFetch } from "../../../../lib/api";
+import { getErrorMessage, requestJson } from "../../../../lib/api";
 import { useAuth } from "../../../../lib/auth-context";
 
 type FormState = { name: string; phone: string; address: string };
@@ -49,7 +49,7 @@ export default function ProfilePage() {
     setSuccess(false);
     setSaving(true);
     try {
-      const res = await apiFetch("/profiles/me", {
+      await requestJson("/profiles/me", {
         method: "PUT",
         body: JSON.stringify({
           name: form.name,
@@ -57,14 +57,10 @@ export default function ProfilePage() {
           address: form.address,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.detail || `No se pudo actualizar el perfil (código ${res.status}).`);
-      }
       await refresh();
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo actualizar el perfil.");
+      setError(getErrorMessage(err, "No pudimos actualizar tu perfil. Inténtalo de nuevo."));
     } finally {
       setSaving(false);
     }

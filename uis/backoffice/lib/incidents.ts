@@ -117,10 +117,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     if (res.status === 404) {
       throw new IncidentApiError("That incident could not be found. It may have been removed.", 404);
     }
+    if (res.status === 403) {
+      throw new IncidentApiError("You don't have permission to do that.", 403);
+    }
     throw new IncidentApiError("Something went wrong on our side. Please try again in a moment.", res.status);
   }
 
-  return (await res.json()) as T;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new IncidentApiError("We received an unexpected response from the server. Please try again.", res.status);
+  }
 }
 
 export function listIncidents(filters: IncidentFilters = {}): Promise<Incident[]> {

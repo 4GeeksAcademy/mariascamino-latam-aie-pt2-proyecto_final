@@ -2,7 +2,8 @@
 
 import { useEffect, useState, FormEvent } from "react";
 
-import { apiFetch } from "../../../lib/api";
+import ErrorState from "../../../components/ErrorState";
+import { getErrorMessage, requestJson } from "../../../lib/api";
 
 const CATEGORIES = [
   "medical_supplies",
@@ -78,14 +79,10 @@ export default function SuppliersPage() {
       const params = new URLSearchParams();
       if (countryFilter) params.set("country", countryFilter);
       if (categoryFilter) params.set("category", categoryFilter);
-      const res = await apiFetch(`/suppliers?${params.toString()}`);
-      if (!res.ok) throw new Error(`Error ${res.status} al cargar proveedores`);
-      const data: Supplier[] = await res.json();
-      setSuppliers(data);
+      const data = await requestJson<Supplier[]>(`/suppliers?${params.toString()}`);
+      setSuppliers(Array.isArray(data) ? data : []);
     } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : "No se pudo conectar con la API"
-      );
+      setLoadError(getErrorMessage(err, "No pudimos cargar los proveedores."));
     } finally {
       setLoading(false);
     }
@@ -121,7 +118,7 @@ export default function SuppliersPage() {
 
     setSubmitting(true);
     try {
-      const res = await apiFetch(`/suppliers`, {
+      await requestJson(`/suppliers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,21 +132,10 @@ export default function SuppliersPage() {
         }),
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        const detail = body?.detail;
-        const message = Array.isArray(detail)
-          ? detail.map((d: { msg?: string }) => d.msg).join(" · ")
-          : detail || `La API rechazó el proveedor (código ${res.status}).`;
-        throw new Error(message);
-      }
-
       setForm(emptyForm);
       await fetchSuppliers();
     } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : "No se pudo registrar el proveedor."
-      );
+      setFormError(getErrorMessage(err, "No pudimos registrar el proveedor. Inténtalo de nuevo."));
     } finally {
       setSubmitting(false);
     }
@@ -169,18 +155,17 @@ export default function SuppliersPage() {
     }
 
     try {
-      const res = await apiFetch(`/suppliers/${supplierId}/rate`, {
+      await requestJson(`/suppliers/${supplierId}/rate`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ monthly_rate: rateNumber }),
       });
-      if (!res.ok) throw new Error(`Error ${res.status} al actualizar la tarifa`);
       await fetchSuppliers();
       setRateDrafts((prev) => ({ ...prev, [supplierId]: "" }));
     } catch (err) {
       setRowError((prev) => ({
         ...prev,
-        [supplierId]: err instanceof Error ? err.message : "No se pudo actualizar.",
+        [supplierId]: getErrorMessage(err, "No pudimos actualizar la tarifa. Inténtalo de nuevo."),
       }));
     }
   };
@@ -188,17 +173,16 @@ export default function SuppliersPage() {
   const handleStatusToggle = async (supplier: Supplier) => {
     const nextStatus = supplier.status === "active" ? "suspended" : "active";
     try {
-      const res = await apiFetch(`/suppliers/${supplier.id}/status`, {
+      await requestJson(`/suppliers/${supplier.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: nextStatus }),
       });
-      if (!res.ok) throw new Error(`Error ${res.status} al cambiar el estado`);
       await fetchSuppliers();
     } catch (err) {
       setRowError((prev) => ({
         ...prev,
-        [supplier.id]: err instanceof Error ? err.message : "No se pudo cambiar el estado.",
+        [supplier.id]: getErrorMessage(err, "No pudimos cambiar el estado. Inténtalo de nuevo."),
       }));
     }
   };
@@ -243,9 +227,11 @@ export default function SuppliersPage() {
       </div>
 
       {loadError && (
-        <p className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">
-          {loadError}
-        </p>
+        <ErrorState
+          title="No pudimos cargar los proveedores"
+          message={loadError}
+          onRetry={fetchSuppliers}
+        />
       )}
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -282,7 +268,7 @@ export default function SuppliersPage() {
                 <td className="px-4 py-3">{supplier.country}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
-                    {supplier.categories.map((cat) => (
+                    {(supplier.categories ?? []).map((cat) => (
                       <span
                         key={cat}
                         className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
@@ -293,7 +279,7 @@ export default function SuppliersPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  {supplier.monthly_rate.toLocaleString()} {supplier.currency}
+                  {(supplier.monthly_rate ?? 0).toLocaleString()} {supplier.currency ?? ""}
                 </td>
                 <td className="px-4 py-3">
                   <span

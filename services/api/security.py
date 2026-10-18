@@ -26,7 +26,12 @@ def hash_password(plain_password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.verify(plain_password, hashed_password)
+    except (ValueError, TypeError):
+        # Hash guardado con formato inválido: tratamos la verificación como
+        # fallida (login rechazado) en vez de romper la petición con un 500.
+        return False
 
 
 def create_access_token(user_id: int) -> str:

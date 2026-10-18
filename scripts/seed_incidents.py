@@ -31,9 +31,47 @@ EXPECTED = {
 }
 
 
+# Columns the transform needs; checked before processing anything.
+REQUIRED_COLUMNS = {"incident_id", "date", "clinic_id", "category", "description", "status"}
+
+
+def fail(message: str) -> None:
+    """Print a clear error to stderr and stop with a non-zero exit code."""
+    print(f"ERROR: {message}", file=sys.stderr)
+    sys.exit(1)
+
+
+def read_rows(csv_path: Path) -> list[dict]:
+    """Read the CSV. Each way the read can fail gets its own message."""
+    try:
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            columns = set(reader.fieldnames or [])
+            rows = list(reader)
+    except FileNotFoundError:
+        fail(f"CSV file not found: {csv_path}")
+    except PermissionError:
+        fail(f"No permission to read the CSV file: {csv_path}")
+    except UnicodeDecodeError:
+        fail("The CSV file is not valid UTF-8 text. Re-export it as UTF-8 and try again.")
+    except csv.Error as exc:
+        fail(f"The CSV file is malformed ({exc}).")
+    except OSError as exc:
+        fail(f"Could not read the CSV file ({type(exc).__name__}).")
+
+    # Defensive checks before touching the database.
+    if not columns:
+        fail("The CSV file is empty (no header row).")
+    missing = sorted(REQUIRED_COLUMNS - columns)
+    if missing:
+        fail(f"The CSV file is missing required columns: {', '.join(missing)}.")
+    if not rows:
+        fail("The CSV file has a header but no data rows.")
+    return rows
+
+
 def main(csv_path: Path) -> None:
-    with open(csv_path, newline="", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
+    rows = read_rows(csv_path)
 
     Source = Query()
     inserted = 0
@@ -54,11 +92,14 @@ def main(csv_path: Path) -> None:
             skipped += 1
             continue
 
-        doc_id = incidents_table.insert(incident)
-        if known is None:
-            incident_seed_sources_table.insert({"source_id": source_id, "incident_doc_id": doc_id})
-        else:
-            incident_seed_sources_table.update({"incident_doc_id": doc_id}, doc_ids=[known.doc_id])
+        try:
+            doc_id = incidents_table.insert(incident)
+            if known is None:
+                incident_seed_sources_table.insert({"source_id": source_id, "incident_doc_id": doc_id})
+            else:
+                incident_seed_sources_table.update({"incident_doc_id": doc_id}, doc_ids=[known.doc_id])
+        except OSError as exc:
+            fail(f"Could not write to the database ({type(exc).__name__}) after inserting {inserted} incidents.")
         inserted += 1
 
     print(f"Rows read from CSV : {len(rows)}")
@@ -67,6 +108,9 @@ def main(csv_path: Path) -> None:
     print(f"Invalid / skipped  : {sum(invalid.values())}")
     for reason, count in invalid.most_common():
         print(f"  - {incident_rules.describe_reason(reason)}: {count}")
+
+    if inserted == 0 and skipped == 0:
+        fail("None of the CSV rows could be imported. Check that the file has the expected format.")
 
     docs = incidents_table.all()
     print("\nTotals in the database (CONTEXT expects these after seeding an empty DB):")

@@ -29,7 +29,7 @@ function LoginForm() {
       const message =
         err instanceof ApiError
           ? err.message
-          : "No se pudo conectar con la API. Intenta de nuevo.";
+          : "No pudimos iniciar tu sesión. Inténtalo de nuevo.";
       setError(message);
     } finally {
       setSubmitting(false);

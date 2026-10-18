@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 
-import { API_URL, ApiError, buildApiError } from "../../lib/api";
+import { API_URL, ApiError, buildApiError, safeFetch } from "../../lib/api";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -47,7 +47,7 @@ function ResetPasswordForm() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/auth/reset-password`, {
+      const res = await safeFetch(`${API_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, new_password: password }),
@@ -63,7 +63,7 @@ function ResetPasswordForm() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "No se pudo conectar con la API. Intenta de nuevo."
+          : "No pudimos restablecer la contraseña. Inténtalo de nuevo en unos minutos."
       );
     } finally {
       setSubmitting(false);

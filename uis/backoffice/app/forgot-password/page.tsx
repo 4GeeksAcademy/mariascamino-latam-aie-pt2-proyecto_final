@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
-import { API_URL, ApiError, buildApiError } from "../../lib/api";
+import { API_URL, ApiError, buildApiError, safeFetch } from "../../lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      const res = await safeFetch(`${API_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "No se pudo conectar con la API. Intenta de nuevo."
+          : "No pudimos enviar la solicitud. Inténtalo de nuevo en unos minutos."
       );
     } finally {
       setSubmitting(false);

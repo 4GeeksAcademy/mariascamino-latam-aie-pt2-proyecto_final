@@ -55,7 +55,7 @@ export default function RegisterPage() {
       } else if (err instanceof ApiError) {
         setFormError(err.message);
       } else {
-        setFormError("No se pudo conectar con la API. Intenta de nuevo.");
+        setFormError("No pudimos crear tu cuenta. Inténtalo de nuevo.");
       }
     } finally {
       setSubmitting(false);

@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
-import { API_URL, apiFetch, buildApiError } from "./api";
+import { API_URL, ApiError, apiFetch, buildApiError, friendlyMessage, readJson, safeFetch } from "./api";
 import { clearToken, getToken, setToken } from "./auth-storage";
 
 export type Profile = {
@@ -40,6 +40,8 @@ type AuthContextValue = {
   user: CurrentUser | null;
   /** true durante la comprobación inicial del token (evita parpadeos/redirects prematuros). */
   loading: boolean;
+  /** Mensaje legible si no se pudo comprobar la sesión por un fallo de red/servidor (no por falta de login). */
+  error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => void;
@@ -52,6 +54,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const refresh = useCallback(async () => {
@@ -60,16 +63,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    setError(null);
     try {
       const res = await apiFetch("/auth/me");
-      if (!res.ok) {
+      if (res.status === 401) {
+        // Token vencido o inválido: apiFetch ya limpió la sesión y redirige a /login.
         setUser(null);
         return;
       }
-      const data: CurrentUser = await res.json();
-      setUser(data);
-    } catch {
+      if (!res.ok) {
+        // El servidor falló: no es un problema de credenciales, así que no
+        // tratamos al usuario como "sin sesión"; mostramos el error con reintento.
+        setUser(null);
+        setError(friendlyMessage(res.status));
+        return;
+      }
+      setUser(await readJson<CurrentUser>(res));
+    } catch (err) {
       setUser(null);
+      setError(err instanceof ApiError ? err.message : friendlyMessage(0));
     } finally {
       setLoading(false);
     }
@@ -90,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body.set("username", email);
       body.set("password", password);
 
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await safeFetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,
@@ -100,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw await buildApiError(res);
       }
 
-      const data: { access_token: string } = await res.json();
+      const data = await readJson<{ access_token: string }>(res);
       setToken(data.access_token);
       await refresh();
     },
@@ -109,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (payload: RegisterPayload) => {
-      const res = await fetch(`${API_URL}/users`, {
+      const res = await safeFetch(`${API_URL}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -133,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refresh }}>
+    <AuthContext.Provider value={{ user, loading, error, login, register, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

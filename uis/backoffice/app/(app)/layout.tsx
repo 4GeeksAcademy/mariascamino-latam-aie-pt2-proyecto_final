@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import ErrorState from "../../components/ErrorState";
 import { useAuth } from "../../lib/auth-context";
 
 /**
@@ -18,17 +19,32 @@ import { useAuth } from "../../lib/auth-context";
  * cliente, como aquí.
  */
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, error, refresh } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !user && !error) {
       router.replace("/login");
     }
-  }, [loading, user, router]);
+  }, [loading, user, error, router]);
 
   if (loading) {
     return <p className="text-sm text-slate-400">Cargando…</p>;
+  }
+
+  if (error) {
+    // No pudimos comprobar la sesión por un fallo de red/servidor: ofrecemos reintentar.
+    return (
+      <div className="mx-auto max-w-lg py-10">
+        <ErrorState
+          title="No pudimos cargar tu sesión"
+          message={error}
+          onRetry={() => {
+            void refresh();
+          }}
+        />
+      </div>
+    );
   }
 
   if (!user) {

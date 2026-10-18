@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import ErrorState from "../../../components/ErrorState";
 import {
   BRANCHES,
   CATEGORIES,
@@ -165,16 +166,14 @@ export default function IncidentsPage() {
       {loading && <p className="text-sm text-slate-500">Loading incidents…</p>}
 
       {!loading && error && (
-        <div role="alert" className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={load}
-            className="mt-2 rounded border border-red-300 bg-white px-3 py-1 text-red-800 hover:bg-red-100"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorState
+          title="We couldn't load the incidents"
+          message={error}
+          onRetry={load}
+          retryLabel="Retry"
+            homeLabel="Back to home"
+            supportText="If the problem continues, contact the HealthCore Digital support team."
+        />
       )}
 
       {!loading && !error && incidents.length === 0 && (
