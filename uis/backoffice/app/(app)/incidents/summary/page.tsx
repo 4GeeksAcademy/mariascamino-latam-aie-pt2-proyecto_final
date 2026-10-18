@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import ErrorState from "../../../../components/ErrorState";
 import {
   BRANCHES,
   CATEGORIES,
@@ -26,7 +27,7 @@ function Card({
     <section className="rounded border border-slate-200 bg-white p-4">
       <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">{title}</h2>
       <ul className="space-y-1 text-sm">
-        {Object.entries(counts).map(([key, n]) => (
+        {Object.entries(counts ?? {}).map(([key, n]) => (
           <li key={key} className="flex justify-between">
             <span className="text-slate-700">{labelOf(options, key)}</span>
             <span className="font-medium text-slate-900">{n}</span>
@@ -73,16 +74,14 @@ export default function IncidentSummaryPage() {
       {loading && <p className="text-sm text-slate-500">Loading summary…</p>}
 
       {!loading && error && (
-        <div role="alert" className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={load}
-            className="mt-2 rounded border border-red-300 bg-white px-3 py-1 text-red-800 hover:bg-red-100"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorState
+          title="We couldn't load the summary"
+          message={error}
+          onRetry={load}
+          retryLabel="Retry"
+            homeLabel="Back to home"
+            supportText="If the problem continues, contact the HealthCore Digital support team."
+        />
       )}
 
       {!loading && !error && summary && (

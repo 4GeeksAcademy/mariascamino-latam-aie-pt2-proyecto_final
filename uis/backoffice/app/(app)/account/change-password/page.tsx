@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
-import { apiFetch } from "../../../../lib/api";
+import { getErrorMessage, requestJson } from "../../../../lib/api";
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -29,25 +29,19 @@ export default function ChangePasswordPage() {
 
     setSubmitting(true);
     try {
-      const res = await apiFetch("/auth/change-password", {
+      await requestJson("/auth/change-password", {
         method: "POST",
         body: JSON.stringify({
           current_password: currentPassword,
           new_password: newPassword,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(
-          data?.detail || `No se pudo cambiar la contraseña (código ${res.status}).`
-        );
-      }
       setSuccess(true);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo cambiar la contraseña.");
+      setError(getErrorMessage(err, "No pudimos cambiar tu contraseña. Inténtalo de nuevo."));
     } finally {
       setSubmitting(false);
     }

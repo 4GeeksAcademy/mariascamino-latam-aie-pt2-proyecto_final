@@ -7,6 +7,7 @@ verificado en tu cuenta de SendGrid (Settings -> Sender Authentication ->
 Single Sender Verification) -- sin eso, SendGrid rechaza el envío.
 """
 
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -19,6 +20,8 @@ SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL")
 RESET_TOKEN_EXPIRE_MINUTES = os.getenv("RESET_TOKEN_EXPIRE_MINUTES", "30")
 
+logger = logging.getLogger("uvicorn.error")
+
 
 def send_password_reset_email(to_email: str, reset_url: str) -> None:
     """Manda el correo con el link de reset.
@@ -30,12 +33,11 @@ def send_password_reset_email(to_email: str, reset_url: str) -> None:
     el formulario.
     """
     if not SENDGRID_API_KEY or not SENDGRID_FROM_EMAIL:
-        # Conveniencia de desarrollo: sin SendGrid configurado no hay forma de
-        # recibir el correo real, así que dejamos el link en la consola del
-        # servidor para poder probar el flujo igual.
-        print(
+        # Sin SendGrid configurado no se envía nada. No registramos el link: lleva
+        # el token de reset y los logs no deben contener credenciales.
+        logger.warning(
             "[email_service] SENDGRID_API_KEY o SENDGRID_FROM_EMAIL no están "
-            f"configurados; no se envió el correo de reset. Link para pruebas: {reset_url}"
+            "configurados; no se envió el correo de reset."
         )
         return
 
@@ -76,4 +78,6 @@ def send_password_reset_email(to_email: str, reset_url: str) -> None:
         client = SendGridAPIClient(SENDGRID_API_KEY)
         client.send(message)
     except Exception as exc:  # noqa: BLE001 -- ver docstring: nunca debe romper el 200 de arriba
-        print(f"[email_service] No se pudo enviar el correo de reset: {exc}")
+        # Solo el tipo de error: el texto de la excepción puede traer partes de
+        # la petición (cabeceras, clave de API, dirección del destinatario).
+        logger.error("[email_service] No se pudo enviar el correo de reset (%s).", type(exc).__name__)

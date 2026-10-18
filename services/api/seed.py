@@ -1,6 +1,8 @@
 # seed.py
+import sys
 from datetime import datetime, timezone
 
+from pydantic import ValidationError
 from tinydb import Query
 
 from database import suppliers_table
@@ -180,21 +182,43 @@ def main() -> None:
     SupplierQuery = Query()
     inserted = 0
 
-    for raw in SUPPLIERS_SEED:
-        validated = SupplierCreate(**raw)
+    failed = 0
 
-        already_exists = suppliers_table.get(SupplierQuery.name == validated.name)
-        if already_exists:
+    for position, raw in enumerate(SUPPLIERS_SEED, start=1):
+        # 1) Validar el dato: un proveedor mal formado se salta, no tumba el resto.
+        try:
+            validated = SupplierCreate(**raw)
+        except ValidationError as exc:
+            failed += 1
+            campos = ", ".join(".".join(str(p) for p in e["loc"]) for e in exc.errors())
+            print(f"Proveedor #{position} omitido: datos inválidos en {campos}.", file=sys.stderr)
             continue
 
-        record = validated.model_dump(mode="json")
-        record["updated_at"] = datetime.now(timezone.utc).isoformat()
-        suppliers_table.insert(record)
-        inserted += 1
+        # 2) Escribir en la base de datos.
+        try:
+            already_exists = suppliers_table.get(SupplierQuery.name == validated.name)
+            if already_exists:
+                continue
+
+            record = validated.model_dump(mode="json")
+            record["updated_at"] = datetime.now(timezone.utc).isoformat()
+            suppliers_table.insert(record)
+            inserted += 1
+        except OSError as exc:
+            print(
+                f"No se pudo escribir en la base de datos ({type(exc).__name__}). "
+                f"Se insertaron {inserted} proveedores antes del fallo.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     total = len(suppliers_table)
     print(f"Seeder finalizado: {inserted} proveedores nuevos insertados.")
     print(f"Total de proveedores en la base de datos: {total}")
+
+    if failed:
+        print(f"{failed} proveedor(es) no se pudieron cargar. Revisa los mensajes anteriores.", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
