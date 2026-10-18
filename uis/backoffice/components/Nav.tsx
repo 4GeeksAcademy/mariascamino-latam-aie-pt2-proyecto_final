@@ -18,6 +18,12 @@ export default function Nav() {
           <Link href="/suppliers" className="text-sm text-slate-600 hover:text-slate-900">
             Directorio de Proveedores
           </Link>
+          <Link href="/incidents" className="text-sm text-slate-600 hover:text-slate-900">
+            Incidents
+          </Link>
+          <Link href="/incidents/new" className="text-sm text-slate-600 hover:text-slate-900">
+            Log incident
+          </Link>
           <Link href="/account/profile" className="text-sm text-slate-600 hover:text-slate-900">
             Mi perfil
           </Link>
