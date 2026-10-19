@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tinydb import Query
 
 from auth_models import Role, UserCreate, UserResponse, UserUpdate
-from database import profiles_table, users_table
+from database import find_user_by_email, profiles_table, users_table
 from security import get_current_user, hash_password
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -27,12 +27,12 @@ def _get_user_or_404(user_id: int):
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(payload: UserCreate):
-    existing = users_table.get(UserQuery.email == payload.email)
+    existing = find_user_by_email(payload.email)
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ese email ya está registrado")
 
     new_user = {
-        "email": payload.email,
+        "email": payload.email.strip().lower(),
         "hashed_password": hash_password(payload.password),
         "is_active": True,
         "role": Role.USER.value,
@@ -80,9 +80,12 @@ def update_user(user_id: int, payload: UserUpdate, current_user: dict = Depends(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo un admin puede cambiar el rol")
 
     if "email" in update_data:
-        duplicate = users_table.get(UserQuery.email == update_data["email"])
+        duplicate = find_user_by_email(update_data["email"])
         if duplicate is not None and duplicate.doc_id != user_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ese email ya está en uso")
+
+    if "email" in update_data:
+        update_data["email"] = update_data["email"].strip().lower()
 
     if update_data:
         users_table.update(update_data, doc_ids=[user_id])

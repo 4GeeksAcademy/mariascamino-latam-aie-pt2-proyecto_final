@@ -17,3 +17,9 @@ uis/backoffice/.next/
 uis/backoffice/.env.local
 uis/backoffice/next-env.d.ts
 services/api/.env
+
+# Test output
+services/api/.pytest_cache/
+services/api/.coverage
+services/api/htmlcov/
+uis/backoffice/coverage/

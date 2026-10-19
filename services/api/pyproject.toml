@@ -25,3 +25,19 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 py-modules = ["main", "models", "database", "seed", "security", "auth_models", "password_reset", "email_service"]
 packages = ["routes"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", "seed.py", ".venv/*", "*.egg-info/*"]

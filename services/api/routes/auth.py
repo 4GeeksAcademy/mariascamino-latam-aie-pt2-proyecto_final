@@ -12,7 +12,7 @@ from auth_models import (
     ResetPasswordRequest,
     Token,
 )
-from database import profiles_table, users_table
+from database import find_user_by_email, profiles_table, users_table
 from email_service import send_password_reset_email
 from password_reset import consume_reset_token, create_reset_token, invalidate_all_tokens_for_user
 from security import create_access_token, get_current_user, hash_password, verify_password
@@ -21,14 +21,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-UserQuery = Query()
 ProfileQuery = Query()
 
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # form_data.username = el email del usuario (así se llama el campo en el estándar OAuth2)
-    user_doc = users_table.get(UserQuery.email == form_data.username)
+    user_doc = find_user_by_email(form_data.username)
     if user_doc is None or not verify_password(form_data.password, user_doc["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -60,12 +59,12 @@ def read_current_user(current_user: dict = Depends(get_current_user)):
 
 @router.post("/forgot-password", response_model=MessageResponse)
 def forgot_password(payload: ForgotPasswordRequest):
-    user_doc = users_table.get(UserQuery.email == payload.email)
+    user_doc = find_user_by_email(payload.email)
 
     if user_doc is not None:
         raw_token = create_reset_token(user_doc.doc_id)
         reset_url = f"{FRONTEND_URL}/reset-password?token={raw_token}"
-        send_password_reset_email(payload.email, reset_url)
+        send_password_reset_email(user_doc["email"], reset_url)
 
     # Misma respuesta exista o no la cuenta: si dijéramos "ese email no está
     # registrado" para las que no existen, cualquiera podría usar este
