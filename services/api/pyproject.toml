@@ -8,15 +8,23 @@ dependencies = [
     "uvicorn[standard]",
     "tinydb",
     "pydantic[email]",
+    "python-jose[cryptography]>=3.5.0",
+    "libpass[bcrypt]>=1.9.3",
+    "python-dotenv>=1.2.3",
+    "python-multipart>=0.0.32",
+    "sendgrid>=6.11.0",
+    "sqlmodel>=0.0.48",
+    "psycopg2-binary>=2.9.13",
 ]
 
 [project.scripts]
 seed = "seed:main"
+seed-inventory = "seed_inventory:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "models", "database", "seed"]
-packages = ["routes"]
+py-modules = ["main", "models", "schemas", "database", "seed", "seed_inventory", "security", "auth_models", "password_reset", "email_service"]
+packages = ["routes", "routers"]
