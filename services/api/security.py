@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
@@ -62,4 +63,15 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         )
     user = dict(user_doc)
     user["id"] = user_doc.doc_id
+    user["uuid"] = ensure_user_uuid(user_doc)
     return user
+
+
+def ensure_user_uuid(user_doc) -> str:
+    """Return the user's UUID from TinyDB. Users created before the inventory
+    milestone don't have one yet, so it is generated once and saved."""
+    if not user_doc.get("uuid"):
+        new_uuid = str(uuid.uuid4())
+        users_table.update({"uuid": new_uuid}, doc_ids=[user_doc.doc_id])
+        return new_uuid
+    return user_doc["uuid"]

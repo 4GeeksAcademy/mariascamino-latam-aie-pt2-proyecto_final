@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query as QueryParam
 from tinydb import Query
 from tinydb.table import Document
 from database import suppliers_table
-from models import (
+from schemas import (
     Category,
     Country,
     RateUpdate,

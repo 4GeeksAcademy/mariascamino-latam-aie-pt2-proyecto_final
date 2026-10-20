@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -32,6 +33,7 @@ def create_user(payload: UserCreate):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ese email ya está registrado")
 
     new_user = {
+        "uuid": str(uuid.uuid4()),  # referenced by inventory orders in Supabase
         "email": payload.email,
         "hashed_password": hash_password(payload.password),
         "is_active": True,
