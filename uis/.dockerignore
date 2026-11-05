@@ -1,0 +1,15 @@
+# Dependencies and build output (installed/generated inside the image)
+**/node_modules
+**/.next
+**/out
+**/dist
+# Environment files: secrets never go into the image
+**/.env*
+# Logs
+**/*.log
+**/npm-debug.log*
+# Generated CSS and misc
+website/public/assets/output.css
+**/next-env.d.ts
+**/.DS_Store
+**/.vercel

@@ -1,7 +1,7 @@
 .vercel
 node_modules/
 dist/
-assets/output.css
+uis/website/public/assets/output.css
 
 # Supplier Directory API (services/api)
 services/api/__pycache__/
@@ -16,3 +16,17 @@ uis/backoffice/node_modules/
 uis/backoffice/.next/
 uis/backoffice/.env.local
 uis/backoffice/next-env.d.ts
+
+# Environment files (secrets) — never commit
+.env
+.env.*
+!.env.example
+
+# Website (uis/website)
+uis/website/node_modules/
+uis/website/.next/
+uis/website/next-env.d.ts
+uis/website/public/assets/output.css
+
+# Logs
+*.log

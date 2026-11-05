@@ -1,5 +1,16 @@
 # AI Engineering Company Project — Student Template
 
+## 🐳 Run the whole platform with Docker
+
+```bash
+docker compose up
+```
+
+Website → http://localhost:3000 · Backoffice → http://localhost:3001 · API → http://localhost:8000/docs
+
+Details, architecture and production deploy: [`infra/DOCKER.md`](./infra/DOCKER.md).
+
+
 [![4Geeks Academy](https://img.shields.io/badge/4Geeks-Academy-blue)](https://4geeksacademy.com)
 [![AI Engineering](https://img.shields.io/badge/track-AI%20Engineering-green)](https://4geeksacademy.com/es/programas-de-carrera/ingenieria-ia)
 

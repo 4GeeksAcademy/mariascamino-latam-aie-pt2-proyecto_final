@@ -1,0 +1,58 @@
+# HealthCore monorepo — production (VPS)
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Same two services and network as development, but:
+#   - no bind mounts (the code is baked into the image)
+#   - Next.js runs with next build + next start, Uvicorn without --reload
+#   - restart: unless-stopped so the stack comes back after a VPS reboot
+# Production values live in the .env file ON THE VPS (never in Git).
+
+services:
+  ui:
+    build:
+      context: ./uis
+    container_name: healthcore-ui
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_MODE: production
+      NODE_ENV: production
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+    ports:
+      - "${WEBSITE_PORT:-3000}:3000"
+      - "${BACKOFFICE_PORT:-3001}:3001"
+    depends_on:
+      - api
+    networks:
+      - healthcore-net
+
+  api:
+    build:
+      context: ./services
+    container_name: healthcore-api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      API_PORT: ${API_PORT:-8000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      UVICORN_RELOAD: "false"
+      DB_PATH: /data/db.json
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      # Persist the TinyDB database across deploys.
+      - api_data:/data
+    networks:
+      - healthcore-net
+
+networks:
+  healthcore-net:
+    name: healthcore-net
+
+volumes:
+  api_data:
