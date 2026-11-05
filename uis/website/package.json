@@ -1,0 +1,26 @@
+{
+  "name": "website",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "css": "tailwindcss -c tailwind.config.js -i styles/input.css -o public/assets/output.css --minify",
+    "css:watch": "tailwindcss -c tailwind.config.js -i styles/input.css -o public/assets/output.css --watch=always",
+    "dev": "npm run css && next dev --port 3000 --hostname 0.0.0.0",
+    "build": "npm run css && next build",
+    "start": "next start --port 3000 --hostname 0.0.0.0"
+  },
+  "dependencies": {
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5"
+  }
+}

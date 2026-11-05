@@ -1,0 +1,5 @@
+# Supplier Directory API (services/api) — versions pinned from services/api/uv.lock
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+tinydb==4.9.0
+pydantic[email]==2.13.5

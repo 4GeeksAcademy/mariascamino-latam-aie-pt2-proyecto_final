@@ -1,0 +1,71 @@
+# HealthCore monorepo — development environment (Ticket #infra-40)
+#   docker compose up
+#   website    -> http://localhost:3000
+#   backoffice -> http://localhost:3001
+#   API        -> http://localhost:8000/docs
+#
+# Every value comes from the root .env file (copy .env.example). If .env is missing,
+# the defaults after ":-" are used, so a fresh clone still starts with no extra steps.
+# No secrets live in this file.
+
+services:
+  ui:
+    build:
+      context: ./uis
+    container_name: healthcore-ui
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_MODE: ${APP_MODE:-dev}
+      # Inside the Docker network the backoffice reaches the API by its service name.
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+      # File-watching through bind mounts (macOS/Windows) is more reliable with polling.
+      WATCHPACK_POLLING: ${WATCHPACK_POLLING:-true}
+      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-true}
+    ports:
+      - "${WEBSITE_PORT:-3000}:3000"
+      - "${BACKOFFICE_PORT:-3001}:3001"
+    volumes:
+      # Bind mount: edits on the host show up in the browser without rebuilding.
+      - ./uis:/app
+      # Keep the container's node_modules and .next out of the host folder.
+      - website_node_modules:/app/website/node_modules
+      - backoffice_node_modules:/app/backoffice/node_modules
+      - website_next:/app/website/.next
+      - backoffice_next:/app/backoffice/.next
+    depends_on:
+      - api
+    networks:
+      - healthcore-net
+
+  api:
+    build:
+      context: ./services
+    container_name: healthcore-api
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      API_PORT: ${API_PORT:-8000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      UVICORN_RELOAD: ${UVICORN_RELOAD:-true}
+      WATCHFILES_FORCE_POLLING: ${WATCHFILES_FORCE_POLLING:-true}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      # Bind mount: uvicorn --reload picks up changes to the API code.
+      - ./services/api:/app
+    networks:
+      - healthcore-net
+
+networks:
+  healthcore-net:
+    name: healthcore-net
+
+volumes:
+  website_node_modules:
+  backoffice_node_modules:
+  website_next:
+  backoffice_next:

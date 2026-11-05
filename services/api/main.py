@@ -1,4 +1,6 @@
 # main.py
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,10 +14,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
+    # Allowed origins come from the CORS_ORIGINS env var (comma-separated).
+    # The backoffice normally calls the API through its own /api proxy, so CORS only matters
+    # for direct calls from a browser (e.g. the Swagger docs or local development).
     allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://legendary-robot-697r5www65q7hjqj-3000.app.github.dev",
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+        if origin.strip()
     ],
     allow_credentials=True,
     allow_methods=["*"],
