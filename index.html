@@ -350,28 +350,12 @@
       </div>
       <p class="border-t border-slate-200 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8" data-i18n="copyright">© 2025 HealthCore. Todos los derechos reservados.</p>
     </footer>
+    <script src="assets/js/lang-storage.js"></script>
     <script>
       const mobileMenuButton = document.getElementById("mobile-menu-button");
       const mobileMenu = document.getElementById("menu-principal");
       const langButtons = document.querySelectorAll(".lang-toggle");
-      const LANGUAGE_STORAGE_KEY = "healthcoreLang";
-
-      const readSavedLanguage = () => {
-        try {
-          const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-          return saved === "en" || saved === "es" ? saved : null;
-        } catch {
-          return null;
-        }
-      };
-
-      const saveLanguage = (lang) => {
-        try {
-          localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-        } catch {
-          // Ignore storage errors (private mode or blocked storage).
-        }
-      };
+      const { read: readSavedLanguage, save: saveLanguage } = window.HealthCoreLang;
 
       const translations = {
         es: {

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -c tailwind.config.js -i src/styles.css -o assets/output.css --minify",
-    "build": "npm run build:css && mkdir -p dist/assets/images && cp index.html application.html validation.js dist/ && cp assets/output.css dist/assets/output.css && cp assets/images/*.webp dist/assets/images/ && mkdir -p dist/assets/fonts && cp assets/fonts/*.woff2 dist/assets/fonts/ && cp assets/favicon.svg dist/assets/",
+    "build": "npm run build:css && mkdir -p dist/assets/images && cp index.html application.html validation.js dist/ && cp assets/output.css dist/assets/output.css && cp assets/images/*.webp dist/assets/images/ && mkdir -p dist/assets/fonts && cp assets/fonts/*.woff2 dist/assets/fonts/ && cp assets/favicon.svg dist/assets/ && mkdir -p dist/assets/js && cp assets/js/*.js dist/assets/js/",
     "dev": "npx http-server . -p 3000 -c-1",
     "preview": "npx http-server dist -p 4173 -c-1",
     "typecheck": "tsc --noEmit"

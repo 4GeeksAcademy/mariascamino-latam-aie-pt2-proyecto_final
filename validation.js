@@ -3,24 +3,7 @@ const form = document.getElementById("inquiryForm");
 if (form) {
   const langButtons = document.querySelectorAll(".lang-toggle");
   let currentLang = "es";
-  const LANGUAGE_STORAGE_KEY = "healthcoreLang";
-
-  const readSavedLanguage = () => {
-    try {
-      const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-      return saved === "en" || saved === "es" ? saved : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const saveLanguage = (lang) => {
-    try {
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-    } catch {
-      // Ignore storage errors (private mode or blocked storage).
-    }
-  };
+  const { read: readSavedLanguage, save: saveLanguage } = window.HealthCoreLang;
 
   const t = {
     en: {
