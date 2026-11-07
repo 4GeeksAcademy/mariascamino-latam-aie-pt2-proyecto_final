@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+import { useState, FormEvent } from "react";
+import { useSuppliers } from "@/hooks/useSuppliers";
+import type { Supplier } from "@/lib/suppliers-api";
 
 const CATEGORIES = [
   "medical_supplies",
@@ -18,19 +18,6 @@ const CATEGORIES = [
 ] as const;
 
 const COUNTRY_CURRENCY: Record<string, string> = { USA: "USD", UK: "GBP" };
-
-type Supplier = {
-  id: number;
-  name: string;
-  country: "USA" | "UK";
-  categories: string[];
-  monthly_rate: number;
-  currency: "USD" | "GBP";
-  status: "active" | "suspended";
-  contact_email: string | null;
-  notes: string | null;
-  updated_at: string;
-};
 
 type NewSupplierForm = {
   name: string;
@@ -57,12 +44,18 @@ const categoryLabel = (cat: string) =>
     .join(" ");
 
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  const [countryFilter, setCountryFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const {
+    suppliers,
+    loading,
+    loadError,
+    countryFilter,
+    setCountryFilter,
+    categoryFilter,
+    setCategoryFilter,
+    createSupplier,
+    updateRate,
+    toggleStatus,
+  } = useSuppliers();
 
   const [form, setForm] = useState<NewSupplierForm>(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
@@ -70,31 +63,6 @@ export default function SuppliersPage() {
 
   const [rateDrafts, setRateDrafts] = useState<Record<number, string>>({});
   const [rowError, setRowError] = useState<Record<number, string>>({});
-
-  const fetchSuppliers = async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const params = new URLSearchParams();
-      if (countryFilter) params.set("country", countryFilter);
-      if (categoryFilter) params.set("category", categoryFilter);
-      const res = await fetch(`${API_URL}/suppliers?${params.toString()}`);
-      if (!res.ok) throw new Error(`Error ${res.status} al cargar proveedores`);
-      const data: Supplier[] = await res.json();
-      setSuppliers(data);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : "No se pudo conectar con la API"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSuppliers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryFilter, categoryFilter]);
 
   const toggleCategory = (cat: string) => {
     setForm((prev) => ({
@@ -121,31 +89,16 @@ export default function SuppliersPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/suppliers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          country: form.country,
-          categories: form.categories,
-          monthly_rate: rateNumber,
-          currency: COUNTRY_CURRENCY[form.country],
-          contact_email: form.contact_email || null,
-          notes: form.notes || null,
-        }),
+      await createSupplier({
+        name: form.name,
+        country: form.country,
+        categories: form.categories,
+        monthly_rate: rateNumber,
+        currency: COUNTRY_CURRENCY[form.country],
+        contact_email: form.contact_email || null,
+        notes: form.notes || null,
       });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        const detail = body?.detail;
-        const message = Array.isArray(detail)
-          ? detail.map((d: { msg?: string }) => d.msg).join(" · ")
-          : detail || `La API rechazó el proveedor (código ${res.status}).`;
-        throw new Error(message);
-      }
-
       setForm(emptyForm);
-      await fetchSuppliers();
     } catch (err) {
       setFormError(
         err instanceof Error ? err.message : "No se pudo registrar el proveedor."
@@ -169,13 +122,7 @@ export default function SuppliersPage() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/suppliers/${supplierId}/rate`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ monthly_rate: rateNumber }),
-      });
-      if (!res.ok) throw new Error(`Error ${res.status} al actualizar la tarifa`);
-      await fetchSuppliers();
+      await updateRate(supplierId, rateNumber);
       setRateDrafts((prev) => ({ ...prev, [supplierId]: "" }));
     } catch (err) {
       setRowError((prev) => ({
@@ -186,15 +133,8 @@ export default function SuppliersPage() {
   };
 
   const handleStatusToggle = async (supplier: Supplier) => {
-    const nextStatus = supplier.status === "active" ? "suspended" : "active";
     try {
-      const res = await fetch(`${API_URL}/suppliers/${supplier.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
-      });
-      if (!res.ok) throw new Error(`Error ${res.status} al cambiar el estado`);
-      await fetchSuppliers();
+      await toggleStatus(supplier);
     } catch (err) {
       setRowError((prev) => ({
         ...prev,
