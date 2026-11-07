@@ -2,7 +2,7 @@
 
 The environment is configured BEFORE the app is imported, because
 ``security.py`` reads JWT_SECRET_KEY at import time and ``database.py`` opens
-its file at import time. Tests therefore always run against a throw-away
+its file (and builds the SQLModel engine) at import time. Tests therefore always run against a throw-away
 database file and a fixed secret, never against the developer's real
 ``db.json`` or ``.env``.
 """
@@ -20,6 +20,8 @@ os.environ["RESET_TOKEN_EXPIRE_MINUTES"] = "30"
 # Never talk to SendGrid from tests, even if a real .env exists.
 os.environ["SENDGRID_API_KEY"] = ""
 os.environ["SENDGRID_FROM_EMAIL"] = ""
+# Inventory (SQLModel) runs on a throw-away SQLite file, never on Supabase.
+os.environ["DATABASE_URL"] = f"sqlite:///{Path(_TMP_DIR.name) / 'test_inventory.db'}"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
