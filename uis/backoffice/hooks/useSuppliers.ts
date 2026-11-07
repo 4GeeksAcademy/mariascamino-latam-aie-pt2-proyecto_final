@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiRequest, getSuppliers, type Supplier } from "@/lib/suppliers-api";
 
 export type NewSupplierPayload = {
@@ -16,10 +16,13 @@ export type NewSupplierPayload = {
 /**
  * Owns the supplier list: filters, loading/error state and every mutation.
  * Mutations re-fetch the list so the table always reflects the API.
+ *
+ * `initialSuppliers` comes from the server render: when present, the first
+ * client fetch is skipped so the table is not replaced (no layout shift).
  */
-export function useSuppliers() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useSuppliers(initialSuppliers: Supplier[] | null = null) {
+  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers ?? []);
+  const [loading, setLoading] = useState(initialSuppliers === null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [countryFilter, setCountryFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -36,7 +39,13 @@ export function useSuppliers() {
     }
   }, [countryFilter, categoryFilter]);
 
+  const skipInitialFetch = useRef(initialSuppliers !== null);
+
   useEffect(() => {
+    if (skipInitialFetch.current) {
+      skipInitialFetch.current = false;
+      return;
+    }
     refresh();
   }, [refresh]);
 
