@@ -3,7 +3,17 @@ import sys
 from json import JSONDecodeError
 from pathlib import Path
 
+from typing import Iterator
+
+from dotenv import load_dotenv
+from sqlalchemy.pool import NullPool
+from sqlmodel import Session, SQLModel, create_engine
 from tinydb import Query, TinyDB
+
+load_dotenv()
+
+# Two databases: TinyDB (users, auth, suppliers, incidents) and
+# Supabase/PostgreSQL via SQLModel (inventory).
 
 # DB_PATH can be overridden (the test suite points it at a temporary file so
 # tests never touch the real db.json).
@@ -43,3 +53,31 @@ def find_user_by_email(email: str):
     return users_table.get(
         Query().email.test(lambda stored: isinstance(stored, str) and stored.strip().lower() == wanted)
     )
+
+# ---------- 2. Supabase / PostgreSQL (inventory) ----------
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL no está definido. Revisa tu archivo .env")
+
+# Supabase gives a "postgresql://..." URI. Newer SQLAlchemy versions map that
+# to the psycopg (v3) driver, so we pin the psycopg2 driver we installed.
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+# Supabase's Transaction pooler already pools connections, so SQLAlchemy must
+# not keep its own pool on top of it (NullPool).
+engine = create_engine(DATABASE_URL, poolclass=NullPool, pool_pre_ping=True)
+
+
+def init_db() -> None:
+    """Create the inventory tables in Supabase if they don't exist (dev only;
+    production would use Alembic migrations)."""
+    import models  # noqa: F401  (registers the tables in SQLModel.metadata)
+
+    SQLModel.metadata.create_all(engine)
+
+
+def get_db() -> Iterator[Session]:
+    """FastAPI dependency: one SQLModel session per request, always closed."""
+    with Session(engine) as session:
+        yield session

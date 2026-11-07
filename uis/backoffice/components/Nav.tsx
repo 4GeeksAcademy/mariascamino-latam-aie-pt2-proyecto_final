@@ -24,6 +24,12 @@ export default function Nav() {
           <Link href="/incidents/new" className="text-sm text-slate-600 hover:text-slate-900">
             Log incident
           </Link>
+          <Link href="/inventory/products" className="text-sm text-slate-600 hover:text-slate-900">
+            Inventory
+          </Link>
+          <Link href="/inventory/orders" className="text-sm text-slate-600 hover:text-slate-900">
+            Supply orders
+          </Link>
           <Link href="/account/profile" className="text-sm text-slate-600 hover:text-slate-900">
             Mi perfil
           </Link>

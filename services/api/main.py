@@ -1,11 +1,14 @@
 # main.py
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from database import init_db
+from routers.inventory import router as inventory_router
 from routes.auth import router as auth_router
 from routes.incidents import router as incidents_router
 from routes.profiles import router as profiles_router
@@ -14,9 +17,18 @@ from routes.users import router as users_router
 
 logger = logging.getLogger("uvicorn.error")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: create the inventory tables in Supabase (SQLModel.metadata.create_all).
+    init_db()
+    yield
+
+
 app = FastAPI(
-    title="HealthCore Supplier Directory API",
-    description="Directorio centralizado de proveedores de HealthCore (clínicos y tecnológicos).",
+    lifespan=lifespan,
+    title="HealthCore API",
+    description="Proveedores e incidentes (TinyDB) e inventario de insumos médicos (Supabase) de HealthCore.",
     version="1.0.0",
 )
 
@@ -85,6 +97,7 @@ app.include_router(users_router)
 app.include_router(profiles_router)
 app.include_router(suppliers_router)
 app.include_router(incidents_router)
+app.include_router(inventory_router)
 
 
 @app.get("/")

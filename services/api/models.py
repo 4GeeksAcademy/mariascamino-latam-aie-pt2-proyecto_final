@@ -1,102 +1,53 @@
-# models.py
-from datetime import datetime
-from enum import Enum
+# models.py — SQLModel ORM tables (Supabase / PostgreSQL).
+# Each class with table=True becomes a table; each attribute becomes a column.
+# Pydantic request/response schemas live in schemas.py.
+#
+# Business rule: MedicalSupply has NO stock column. Stock is always computed
+# from SupplyDelivery (inbound) minus SupplyConsumption (outbound).
+#
+# There is NO User table here: user_uuid references a TinyDB user (auth DB).
+from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from sqlmodel import Field, SQLModel
 
 
-class Category(str, Enum):
-    MEDICAL_SUPPLIES = "medical_supplies"
-    LABORATORY_SERVICES = "laboratory_services"
-    PHARMACEUTICAL = "pharmaceutical"
-    CLINICAL_SOFTWARE = "clinical_software"
-    IT_INFRASTRUCTURE = "it_infrastructure"
-    HR_AND_PAYROLL_SOFTWARE = "hr_and_payroll_software"
-    CLEANING_AND_FACILITIES = "cleaning_and_facilities"
-    PATIENT_COMMUNICATION = "patient_communication"
-    BILLING_AND_CODING_SOFTWARE = "billing_and_coding_software"
-    TRAINING_PLATFORMS = "training_platforms"
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
-class Country(str, Enum):
-    USA = "USA"
-    UK = "UK"
+class MedicalSupply(SQLModel, table=True):
+    __tablename__ = "medical_supply"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=200)
+    sku: str = Field(max_length=50, unique=True, index=True)
+    category: str = Field(max_length=30)   # ppe | wound_care | diagnostics | medications | consumables
+    unit: str = Field(max_length=10)       # box | unit | pack | vial
+    country: str = Field(max_length=2)     # US | UK
 
 
-class Currency(str, Enum):
-    USD = "USD"
-    GBP = "GBP"
+class SupplyDelivery(SQLModel, table=True):
+    """Inbound order: a vendor shipment received at a clinic (adds stock)."""
+    __tablename__ = "supply_delivery"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    supply_id: int = Field(foreign_key="medical_supply.id", index=True)
+    quantity: int
+    vendor_name: str = Field(max_length=200)
+    clinic_id: int                          # 1-12, not a FK (clinic data lives elsewhere)
+    created_at: datetime = Field(default_factory=_utcnow)
+    user_uuid: str = Field(max_length=36)  # TinyDB user UUID (no FK on purpose)
 
 
-class Status(str, Enum):
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
+class SupplyConsumption(SQLModel, table=True):
+    """Outbound order: supplies used in patient care or discarded (removes stock)."""
+    __tablename__ = "supply_consumption"
 
-
-class ComplianceAgreement(str, Enum):
-    BAA = "BAA"
-    DPA = "DPA"
-    BOTH = "both"
-
-
-COUNTRY_CURRENCY = {
-    Country.USA: Currency.USD,
-    Country.UK: Currency.GBP,
-}
-
-
-def _validate_renewal_date(v: Optional[str]) -> Optional[str]:
-    if v is None:
-        return v
-    try:
-        datetime.strptime(v, "%Y-%m-%d")
-    except ValueError as exc:
-        raise ValueError("contract_renewal_date debe tener formato YYYY-MM-DD") from exc
-    return v
-
-
-class SupplierBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
-    country: Country
-    categories: list[Category] = Field(..., min_length=1)
-    monthly_rate: float = Field(..., gt=0)
-    currency: Currency
-    status: Status = Status.ACTIVE
-    compliance_agreement: Optional[ComplianceAgreement] = None
-    contract_renewal_date: Optional[str] = None
-    contact_email: Optional[EmailStr] = None
-    notes: Optional[str] = None
-
-    @field_validator("contract_renewal_date")
-    @classmethod
-    def check_date_format(cls, v: Optional[str]) -> Optional[str]:
-        return _validate_renewal_date(v)
-
-    @model_validator(mode="after")
-    def check_currency_matches_country(self) -> "SupplierBase":
-        expected = COUNTRY_CURRENCY[self.country]
-        if self.currency != expected:
-            raise ValueError(
-                f"Un proveedor de {self.country.value} debe tener currency={expected.value}"
-            )
-        return self
-
-
-class SupplierCreate(SupplierBase):
-    """Lo que manda el cliente en POST /suppliers. updated_at NO va aquí: lo genera el servidor."""
-    pass
-
-
-class SupplierResponse(SupplierBase):
-    """Lo que devuelve la API. Incluye id (asignado por TinyDB) y updated_at (generado por el sistema)."""
-    id: int
-    updated_at: datetime
-
-
-class RateUpdate(BaseModel):
-    monthly_rate: float = Field(..., gt=0)
-
-
-class StatusUpdate(BaseModel):
-    status: Status
+    id: Optional[int] = Field(default=None, primary_key=True)
+    supply_id: int = Field(foreign_key="medical_supply.id", index=True)
+    quantity: int
+    consumption_type: str = Field(max_length=20)  # clinical_use | expiry_waste
+    clinic_id: int
+    created_at: datetime = Field(default_factory=_utcnow)
+    user_uuid: str = Field(max_length=36)

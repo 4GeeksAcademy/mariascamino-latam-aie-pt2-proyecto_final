@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from tinydb import Query
 
 from database import suppliers_table
-from models import SupplierCreate
+from schemas import SupplierCreate
 
 SUPPLIERS_SEED = [
     {
