@@ -8,12 +8,9 @@
       content="HealthCore es una red de clínicas ambulatorias fundada en 2011, con 12 sedes en EE. UU. y Reino Unido, enfocada en atención primaria, especialistas, enfermedades crónicas y salud preventiva."
     />
     <title>HealthCore | Atención médica conectada</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="assets/fonts/manrope-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/manrope-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="assets/output.css" />
     <script type="application/ld+json">
       {
@@ -195,7 +192,9 @@
 
           <article class="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-2xl backdrop-blur md:p-7">
             <img
-              src="assets/images/hero-clinic.webp"
+              src="assets/images/hero-clinic-800.webp"
+              srcset="assets/images/hero-clinic-480.webp 480w, assets/images/hero-clinic-800.webp 800w, assets/images/hero-clinic.webp 1200w"
+              sizes="(min-width: 1152px) 490px, (min-width: 1024px) 42vw, calc(100vw - 80px)"
               alt="Doctora revisando en tablet el historial clínico de un paciente en una consulta moderna"
               width="1200"
               height="800"
@@ -220,7 +219,9 @@
         <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
             <img
-              src="assets/images/service-primary.webp"
+              src="assets/images/service-primary-800.webp"
+              srcset="assets/images/service-primary-480.webp 480w, assets/images/service-primary-800.webp 800w, assets/images/service-primary.webp 1200w"
+              sizes="(min-width: 1152px) 330px, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, calc(100vw - 72px)"
               alt="Paciente recibiendo orientación en una clínica ambulatoria para gestionar su próxima cita"
               width="1200"
               height="800"
@@ -233,7 +234,9 @@
           </article>
           <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
             <img
-              src="assets/images/service-specialists.webp"
+              src="assets/images/service-specialists-800.webp"
+              srcset="assets/images/service-specialists-480.webp 480w, assets/images/service-specialists-800.webp 800w, assets/images/service-specialists.webp 1200w"
+              sizes="(min-width: 1152px) 330px, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, calc(100vw - 72px)"
               alt="Equipo clínico coordinando flujo de atención en pantalla con pacientes y especialistas"
               width="1200"
               height="800"
@@ -246,7 +249,9 @@
           </article>
           <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
             <img
-              src="assets/images/service-preventive.webp"
+              src="assets/images/service-preventive-800.webp"
+              srcset="assets/images/service-preventive-480.webp 480w, assets/images/service-preventive-800.webp 800w, assets/images/service-preventive.webp 1200w"
+              sizes="(min-width: 1152px) 330px, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, calc(100vw - 72px)"
               alt="Profesional de salud realizando controles preventivos en una consulta ambulatoria"
               width="1200"
               height="800"
@@ -289,7 +294,9 @@
           <h2 id="ubicaciones-title" class="text-2xl font-bold text-slate-900 sm:text-3xl" data-i18n="locations_title">Ubicaciones en EE. UU.</h2>
           <p class="mt-3 max-w-2xl text-sm text-slate-600" data-i18n="locations_subtitle">Conoce las clínicas de HealthCore en Estados Unidos y sus horarios de atención.</p>
           <img
-            src="assets/images/locations-clinic.webp"
+            src="assets/images/locations-clinic-800.webp"
+              srcset="assets/images/locations-clinic-480.webp 480w, assets/images/locations-clinic-800.webp 800w, assets/images/locations-clinic.webp 1600w"
+              sizes="(min-width: 1152px) 1088px, calc(100vw - 32px)"
             alt="Equipo médico en consulta clínica representando la red ambulatoria de HealthCore"
             width="1600"
             height="900"
@@ -343,28 +350,12 @@
       </div>
       <p class="border-t border-slate-200 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8" data-i18n="copyright">© 2025 HealthCore. Todos los derechos reservados.</p>
     </footer>
+    <script src="assets/js/lang-storage.js"></script>
     <script>
       const mobileMenuButton = document.getElementById("mobile-menu-button");
       const mobileMenu = document.getElementById("menu-principal");
       const langButtons = document.querySelectorAll(".lang-toggle");
-      const LANGUAGE_STORAGE_KEY = "healthcoreLang";
-
-      const readSavedLanguage = () => {
-        try {
-          const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-          return saved === "en" || saved === "es" ? saved : null;
-        } catch {
-          return null;
-        }
-      };
-
-      const saveLanguage = (lang) => {
-        try {
-          localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-        } catch {
-          // Ignore storage errors (private mode or blocked storage).
-        }
-      };
+      const { read: readSavedLanguage, save: saveLanguage } = window.HealthCoreLang;
 
       const translations = {
         es: {
