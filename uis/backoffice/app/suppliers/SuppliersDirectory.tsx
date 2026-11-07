@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import type { Supplier } from "@/lib/suppliers-api";
+import { Field } from "@/components/Field";
 
 const CATEGORIES = [
   "medical_supplies",
@@ -105,7 +106,9 @@ export default function SuppliersDirectory({
       setForm(emptyForm);
     } catch (err) {
       setFormError(
-        err instanceof Error ? err.message : "No se pudo registrar el proveedor."
+        err instanceof Error
+          ? err.message
+          : "No se pudo registrar el proveedor.",
       );
     } finally {
       setSubmitting(false);
@@ -131,7 +134,8 @@ export default function SuppliersDirectory({
     } catch (err) {
       setRowError((prev) => ({
         ...prev,
-        [supplierId]: err instanceof Error ? err.message : "No se pudo actualizar.",
+        [supplierId]:
+          err instanceof Error ? err.message : "No se pudo actualizar.",
       }));
     }
   };
@@ -142,7 +146,8 @@ export default function SuppliersDirectory({
     } catch (err) {
       setRowError((prev) => ({
         ...prev,
-        [supplier.id]: err instanceof Error ? err.message : "No se pudo cambiar el estado.",
+        [supplier.id]:
+          err instanceof Error ? err.message : "No se pudo cambiar el estado.",
       }));
     }
   };
@@ -152,13 +157,13 @@ export default function SuppliersDirectory({
       <div>
         <h1 className="text-2xl font-semibold">Directorio de Proveedores</h1>
         <p className="text-slate-600">
-          Proveedores clínicos y tecnológicos de HealthCore, con visibilidad de tarifa y estado.
+          Proveedores clínicos y tecnológicos de HealthCore, con visibilidad de
+          tarifa y estado.
         </p>
       </div>
 
       <div className="flex flex-wrap gap-4 rounded-lg border border-slate-200 bg-white p-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-500">País</label>
+        <Field label="País">
           <select
             value={countryFilter}
             onChange={(e) => setCountryFilter(e.target.value)}
@@ -168,9 +173,8 @@ export default function SuppliersDirectory({
             <option value="USA">USA</option>
             <option value="UK">UK</option>
           </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500">Categoría</label>
+        </Field>
+        <Field label="Categoría">
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -183,7 +187,7 @@ export default function SuppliersDirectory({
               </option>
             ))}
           </select>
-        </div>
+        </Field>
       </div>
 
       {loadError && (
@@ -202,27 +206,37 @@ export default function SuppliersDirectory({
               <th className="px-4 py-3">Tarifa mensual</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Actualizar tarifa</th>
-              <th className="px-4 py-3"></th>
+              <th className="px-4 py-3">
+                <span className="sr-only">Acciones</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
+                <td
+                  colSpan={7}
+                  className="px-4 py-6 text-center text-slate-400"
+                >
                   Cargando proveedores…
                 </td>
               </tr>
             )}
             {!loading && suppliers.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
+                <td
+                  colSpan={7}
+                  className="px-4 py-6 text-center text-slate-400"
+                >
                   No hay proveedores con estos filtros.
                 </td>
               </tr>
             )}
             {suppliers.map((supplier) => (
               <tr key={supplier.id}>
-                <td className="px-4 py-3 font-medium text-slate-800">{supplier.name}</td>
+                <td className="px-4 py-3 font-medium text-slate-800">
+                  {supplier.name}
+                </td>
                 <td className="px-4 py-3">{supplier.country}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
@@ -274,7 +288,9 @@ export default function SuppliersDirectory({
                     </button>
                   </div>
                   {rowError[supplier.id] && (
-                    <p className="mt-1 text-xs text-red-600">{rowError[supplier.id]}</p>
+                    <p className="mt-1 text-xs text-red-600">
+                      {rowError[supplier.id]}
+                    </p>
                   )}
                 </td>
                 <td className="px-4 py-3">
@@ -293,31 +309,39 @@ export default function SuppliersDirectory({
 
       <div className="rounded-lg border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold">Registrar nuevo proveedor</h2>
-        <form onSubmit={handleCreate} className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-xs font-medium text-slate-500">Nombre</label>
+        <form
+          onSubmit={handleCreate}
+          className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
+        >
+          <Field label="Nombre">
             <input
               required
               value={form.name}
-              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, name: e.target.value }))
+              }
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500">País</label>
+          </Field>
+          <Field label="País">
             <select
               value={form.country}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, country: e.target.value as "USA" | "UK" }))
+                setForm((prev) => ({
+                  ...prev,
+                  country: e.target.value as "USA" | "UK",
+                }))
               }
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
             >
               <option value="USA">USA (moneda: USD)</option>
               <option value="UK">UK (moneda: GBP)</option>
             </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-slate-500">Categorías</label>
+          </Field>
+          <fieldset className="sm:col-span-2">
+            <legend className="block text-xs font-medium text-slate-500">
+              Categorías
+            </legend>
             <div className="mt-1 flex flex-wrap gap-2">
               {CATEGORIES.map((cat) => (
                 <label
@@ -330,7 +354,7 @@ export default function SuppliersDirectory({
                 >
                   <input
                     type="checkbox"
-                    className="hidden"
+                    className="sr-only"
                     checked={form.categories.includes(cat)}
                     onChange={() => toggleCategory(cat)}
                   />
@@ -338,11 +362,8 @@ export default function SuppliersDirectory({
                 </label>
               ))}
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500">
-              Tarifa mensual ({COUNTRY_CURRENCY[form.country]})
-            </label>
+          </fieldset>
+          <Field label={<>Tarifa mensual ({COUNTRY_CURRENCY[form.country]})</>}>
             <input
               required
               type="number"
@@ -354,11 +375,8 @@ export default function SuppliersDirectory({
               }
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500">
-              Email de contacto (opcional)
-            </label>
+          </Field>
+          <Field label="Email de contacto (opcional)">
             <input
               type="email"
               value={form.contact_email}
@@ -367,18 +385,17 @@ export default function SuppliersDirectory({
               }
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
             />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-slate-500">
-              Notas (opcional)
-            </label>
+          </Field>
+          <Field label="Notas (opcional)" className="sm:col-span-2">
             <textarea
               value={form.notes}
-              onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, notes: e.target.value }))
+              }
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
               rows={2}
             />
-          </div>
+          </Field>
 
           {formError && (
             <p className="sm:col-span-2 rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">
