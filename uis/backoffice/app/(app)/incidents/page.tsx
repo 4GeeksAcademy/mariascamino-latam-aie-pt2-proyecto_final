@@ -12,7 +12,7 @@ import {
   labelOf,
   listIncidents,
   updateIncidentStatus,
-  type Incident,
+  type IncidentListItem,
   type IncidentFilters,
 } from "../../../lib/incidents";
 
@@ -31,7 +31,7 @@ function formatDate(iso: string): string {
 
 export default function IncidentsPage() {
   const [filters, setFilters] = useState<IncidentFilters>({});
-  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidents, setIncidents] = useState<IncidentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -62,7 +62,7 @@ export default function IncidentsPage() {
     });
   }
 
-  async function changeStatus(incident: Incident, newStatus: string) {
+  async function changeStatus(incident: IncidentListItem, newStatus: string) {
     if (!newStatus || newStatus === incident.status) return;
     const previous = incidents;
     setNotice(null);

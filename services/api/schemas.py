@@ -109,6 +109,72 @@ class SupplierListItem(BaseModel):
     status: Status
 
 
+# ---------- Incidents (/api/incidents) ----------
+# Input fields are Optional[str] on purpose: business validation (allowed
+# values, lengths, required fields, status transitions) lives in
+# packages/shared/incident_rules.py and answers 400 with one message per
+# field, which the backoffice form relies on. The schema's job is to define
+# WHICH fields are writable: anything else in the body is dropped.
+
+class IncidentCreate(BaseModel):
+    """POST /api/incidents. id, created_at and updated_at are server-set."""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    status: Optional[str] = None
+    origin: Optional[str] = None
+    branch: Optional[str] = None
+
+
+class IncidentStatusUpdate(BaseModel):
+    """PATCH /api/incidents/{id}/status. Only the status can change."""
+    status: Optional[str] = None
+
+
+class IncidentResponse(BaseModel):
+    """Full incident: create/status-change confirmation and detail view."""
+    id: int
+    title: str
+    description: str
+    category: str
+    status: str
+    origin: str
+    branch: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class IncidentListItem(BaseModel):
+    """Row of GET /api/incidents: the table shows no description and no
+    updated_at, so the list does not send them."""
+    id: int
+    title: str
+    category: str
+    status: str
+    origin: str
+    branch: str
+    created_at: datetime
+
+
+class IncidentSummary(BaseModel):
+    total: int
+    by_status: dict[str, int]
+    by_category: dict[str, int]
+    by_origin: dict[str, int]
+    by_branch: dict[str, int]
+
+
+class FieldError(BaseModel):
+    field: str
+    message: str
+
+
+class IncidentValidationError(BaseModel):
+    """Body of the 400 answered when incident_rules rejects the input."""
+    detail: str
+    errors: list[FieldError]
+
+
 class DeleteResponse(BaseModel):
     """Confirmation for every DELETE: what was removed, nothing else."""
     detail: str

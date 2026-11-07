@@ -68,6 +68,9 @@ export type Incident = {
   updated_at: string;
 };
 
+/** Row of GET /api/incidents (IncidentListItem in the API): no description/updated_at. */
+export type IncidentListItem = Omit<Incident, "description" | "updated_at">;
+
 export type NewIncident = Omit<Incident, "id" | "created_at" | "updated_at">;
 
 export type IncidentFilters = { status?: string; origin?: string; branch?: string };
@@ -130,13 +133,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
-export function listIncidents(filters: IncidentFilters = {}): Promise<Incident[]> {
+export function listIncidents(filters: IncidentFilters = {}): Promise<IncidentListItem[]> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
     if (value) params.set(key, value);
   }
   const query = params.toString();
-  return request<Incident[]>(`/api/incidents${query ? `?${query}` : ""}`);
+  return request<IncidentListItem[]>(`/api/incidents${query ? `?${query}` : ""}`);
 }
 
 export function createIncident(payload: NewIncident): Promise<Incident> {
