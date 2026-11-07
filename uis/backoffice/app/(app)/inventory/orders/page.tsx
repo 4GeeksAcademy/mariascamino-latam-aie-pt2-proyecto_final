@@ -55,7 +55,7 @@ export default function SupplyOrdersPage() {
                   <th className="px-4 py-3">Clinic</th>
                   <th className="px-4 py-3">Detail</th>
                   <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Created by (user_uuid)</th>
+                  <th className="px-4 py-3">Created by</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -73,8 +73,8 @@ export default function SupplyOrdersPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-medium text-slate-900">{o.supply.name}</span>
-                        <span className="ml-2 font-mono text-xs text-slate-500">{o.supply.sku}</span>
+                        <span className="font-medium text-slate-900">{o.supply_name}</span>
+                        <span className="ml-2 font-mono text-xs text-slate-500">{o.supply_sku}</span>
                       </td>
                       <td className={`px-4 py-3 text-right font-semibold tabular-nums ${inbound ? "text-green-700" : "text-red-700"}`}>
                         {inbound ? "+" : "−"}
@@ -85,7 +85,7 @@ export default function SupplyOrdersPage() {
                         {inbound ? o.vendor_name : o.consumption_type === "expiry_waste" ? "Expiry waste" : "Clinical use"}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatDateTime(o.created_at)}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-slate-600">{o.user_uuid}</td>
+                      <td className="px-4 py-3 text-slate-700">{o.created_by}</td>
                     </tr>
                   );
                 })}

@@ -229,15 +229,6 @@ class MedicalSupplyResponse(BaseModel):
     current_stock: int  # computed: SUM(deliveries) - SUM(consumptions), never stored
 
 
-class SupplySummary(BaseModel):
-    """Supply data embedded in each order of GET /inventory/orders."""
-    id: int
-    name: str
-    sku: str
-    unit: str
-    country: str
-
-
 # ---------- SupplyDelivery (inbound) ----------
 
 class SupplyDeliveryCreate(BaseModel):
@@ -249,13 +240,15 @@ class SupplyDeliveryCreate(BaseModel):
 
 
 class SupplyDeliveryResponse(BaseModel):
+    """Write confirmation. user_uuid is internal (cross-DB key to TinyDB) and
+    the caller is the creator, so it is not echoed. supply_id is returned as a
+    plain id: the client just sent it and already has the supply."""
     id: int
     supply_id: int
     quantity: int
     vendor_name: str
     clinic_id: int
     created_at: datetime
-    user_uuid: str
 
 
 # ---------- SupplyConsumption (outbound) ----------
@@ -269,25 +262,33 @@ class SupplyConsumptionCreate(BaseModel):
 
 
 class SupplyConsumptionResponse(BaseModel):
+    """Write confirmation; same projection rules as SupplyDeliveryResponse."""
     id: int
     supply_id: int
     quantity: int
     consumption_type: str
     clinic_id: int
     created_at: datetime
-    user_uuid: str
 
 
 # ---------- GET /inventory/orders ----------
 
 class OrderResponse(BaseModel):
-    """One row of the combined order history (deliveries + consumptions)."""
+    """One row of the combined order history (deliveries + consumptions).
+
+    Flat projection of what the history table renders: the related supply is
+    flattened to supply_id/supply_name/supply_sku (the table never used unit or
+    country), and the internal user_uuid is replaced by created_by, a
+    human-readable name resolved from the user's profile.
+    """
     id: int
     order_type: Literal["inbound", "outbound"]
     quantity: int
     clinic_id: int
     created_at: datetime
-    user_uuid: str
+    created_by: str
     vendor_name: Optional[str] = None        # only inbound
     consumption_type: Optional[str] = None   # only outbound
-    supply: SupplySummary
+    supply_id: int
+    supply_name: str
+    supply_sku: str

@@ -24,18 +24,18 @@ export type MedicalSupply = {
   current_stock: number;
 };
 
-export type SupplySummary = Pick<MedicalSupply, "id" | "name" | "sku" | "unit" | "country">;
-
 export type SupplyOrder = {
   id: number;
   order_type: "inbound" | "outbound";
   quantity: number;
   clinic_id: number;
   created_at: string;
-  user_uuid: string;
+  created_by: string;
   vendor_name: string | null;
   consumption_type: string | null;
-  supply: SupplySummary;
+  supply_id: number;
+  supply_name: string;
+  supply_sku: string;
 };
 
 export type NewSupplyDelivery = {

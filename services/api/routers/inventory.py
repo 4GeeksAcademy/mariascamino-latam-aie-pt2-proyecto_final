@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from database import get_db
+from database import get_db, profiles_table, users_table
 from models import MedicalSupply, SupplyConsumption, SupplyDelivery
 from schemas import (
     MedicalSupplyCreate,
@@ -20,7 +20,6 @@ from schemas import (
     SupplyConsumptionResponse,
     SupplyDeliveryCreate,
     SupplyDeliveryResponse,
-    SupplySummary,
 )
 from security import get_current_user
 
@@ -81,10 +80,15 @@ def _get_supply_with_stock(db: Session, supply_id: int) -> tuple[MedicalSupply, 
     return supply, int(current_stock)
 
 
-def _summary(supply: MedicalSupply) -> SupplySummary:
-    return SupplySummary(
-        id=supply.id, name=supply.name, sku=supply.sku, unit=supply.unit, country=supply.country
-    )
+def _creator_names() -> dict[str, str]:
+    """Map TinyDB user uuid -> display name (profile name, else "Usuario #id").
+    Built once per request so the order list does not look users up row by row."""
+    names_by_user_id = {p["user_id"]: p.get("name") for p in profiles_table.all()}
+    return {
+        u["uuid"]: names_by_user_id.get(u.doc_id) or f"Usuario #{u.doc_id}"
+        for u in users_table.all()
+        if u.get("uuid")
+    }
 
 
 # ---------- products (MedicalSupply) ----------
@@ -179,29 +183,25 @@ def list_orders(db: Session = Depends(get_db)):
         )
     ).all()
 
+    creators = _creator_names()
+
+    def _base(order, supply: MedicalSupply) -> dict:
+        return {
+            "id": order.id,
+            "quantity": order.quantity,
+            "clinic_id": order.clinic_id,
+            "created_at": order.created_at,
+            "created_by": creators.get(order.user_uuid, "Usuario desconocido"),
+            "supply_id": supply.id,
+            "supply_name": supply.name,
+            "supply_sku": supply.sku,
+        }
+
     orders = [
-        OrderResponse(
-            id=d.id,
-            order_type="inbound",
-            quantity=d.quantity,
-            clinic_id=d.clinic_id,
-            created_at=d.created_at,
-            user_uuid=d.user_uuid,
-            vendor_name=d.vendor_name,
-            supply=_summary(s),
-        )
+        OrderResponse(**_base(d, s), order_type="inbound", vendor_name=d.vendor_name)
         for d, s in deliveries
     ] + [
-        OrderResponse(
-            id=c.id,
-            order_type="outbound",
-            quantity=c.quantity,
-            clinic_id=c.clinic_id,
-            created_at=c.created_at,
-            user_uuid=c.user_uuid,
-            consumption_type=c.consumption_type,
-            supply=_summary(s),
-        )
+        OrderResponse(**_base(c, s), order_type="outbound", consumption_type=c.consumption_type)
         for c, s in consumptions
     ]
     return sorted(orders, key=lambda o: o.created_at, reverse=True)
