@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import type { Supplier } from "@/lib/suppliers-api";
 import { Field } from "@/components/Field";
+import ErrorState from "@/components/ErrorState";
 
 const CATEGORIES = [
   "medical_supplies",
@@ -53,6 +54,7 @@ export default function SuppliersDirectory({
     suppliers,
     loading,
     loadError,
+    refresh,
     countryFilter,
     setCountryFilter,
     categoryFilter,
@@ -108,7 +110,7 @@ export default function SuppliersDirectory({
       setFormError(
         err instanceof Error
           ? err.message
-          : "No se pudo registrar el proveedor.",
+          : "No pudimos registrar el proveedor. Inténtalo de nuevo.",
       );
     } finally {
       setSubmitting(false);
@@ -135,7 +137,7 @@ export default function SuppliersDirectory({
       setRowError((prev) => ({
         ...prev,
         [supplierId]:
-          err instanceof Error ? err.message : "No se pudo actualizar.",
+          err instanceof Error ? err.message : "No pudimos actualizar la tarifa. Inténtalo de nuevo.",
       }));
     }
   };
@@ -147,7 +149,7 @@ export default function SuppliersDirectory({
       setRowError((prev) => ({
         ...prev,
         [supplier.id]:
-          err instanceof Error ? err.message : "No se pudo cambiar el estado.",
+          err instanceof Error ? err.message : "No pudimos cambiar el estado. Inténtalo de nuevo.",
       }));
     }
   };
@@ -191,9 +193,11 @@ export default function SuppliersDirectory({
       </div>
 
       {loadError && (
-        <p className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">
-          {loadError}
-        </p>
+        <ErrorState
+          title="No pudimos cargar los proveedores"
+          message={loadError}
+          onRetry={refresh}
+        />
       )}
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

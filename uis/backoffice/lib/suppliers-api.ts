@@ -1,4 +1,4 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+import { requestJson } from "@/lib/api";
 
 export type Supplier = {
   id: number;
@@ -16,35 +16,22 @@ export type Supplier = {
 export type SupplierFilters = { country: string; category: string };
 
 /**
- * Single place for every call to the Supplier API: builds the URL, sends JSON,
- * and turns non-2xx responses into an Error with a readable message
- * (including FastAPI/Pydantic `detail` arrays).
+ * Single place for every Supplier API call. Delegates to the authenticated
+ * requestJson() (Bearer token, 401 -> /login, friendly ApiError messages).
  */
-export async function apiRequest<T>(
+export function apiRequest<T>(
   path: string,
-  options: { method?: string; body?: unknown; init?: RequestInit } = {}
+  options: { method?: string; body?: unknown } = {}
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options.init,
+  return requestJson<T>(path, {
     method: options.method ?? "GET",
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
-
-  if (!res.ok) {
-    const payload = await res.json().catch(() => null);
-    const detail = payload?.detail;
-    const message = Array.isArray(detail)
-      ? detail.map((d: { msg?: string }) => d.msg).join(" · ")
-      : detail || `La API respondió con el código ${res.status}.`;
-    throw new Error(message);
-  }
-  return res.json() as Promise<T>;
 }
 
-export function getSuppliers(filters: SupplierFilters, init?: RequestInit) {
+export function getSuppliers(filters: SupplierFilters) {
   const params = new URLSearchParams();
   if (filters.country) params.set("country", filters.country);
   if (filters.category) params.set("category", filters.category);
-  return apiRequest<Supplier[]>(`/suppliers?${params.toString()}`, { init });
+  return apiRequest<Supplier[]>(`/suppliers?${params.toString()}`);
 }

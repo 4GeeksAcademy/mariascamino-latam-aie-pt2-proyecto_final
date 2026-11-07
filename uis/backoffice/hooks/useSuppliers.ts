@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getErrorMessage } from "@/lib/api";
 import { apiRequest, getSuppliers, type Supplier } from "@/lib/suppliers-api";
 
 export type NewSupplierPayload = {
@@ -33,7 +34,7 @@ export function useSuppliers(initialSuppliers: Supplier[] | null = null) {
     try {
       setSuppliers(await getSuppliers({ country: countryFilter, category: categoryFilter }));
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "No se pudo conectar con la API");
+      setLoadError(getErrorMessage(err, "No pudimos cargar los proveedores."));
     } finally {
       setLoading(false);
     }
@@ -72,6 +73,7 @@ export function useSuppliers(initialSuppliers: Supplier[] | null = null) {
     suppliers,
     loading,
     loadError,
+    refresh,
     countryFilter,
     setCountryFilter,
     categoryFilter,
