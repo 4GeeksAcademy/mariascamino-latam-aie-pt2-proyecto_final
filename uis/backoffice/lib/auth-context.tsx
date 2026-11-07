@@ -14,8 +14,6 @@ import { API_URL, ApiError, apiFetch, buildApiError, friendlyMessage, readJson, 
 import { clearToken, getToken, setToken } from "./auth-storage";
 
 export type Profile = {
-  id: number;
-  user_id: number;
   name: string | null;
   phone: string | null;
   address: string | null;

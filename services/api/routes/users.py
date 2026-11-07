@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from tinydb import Query
 
-from auth_models import Role, UserCreate, UserResponse, UserUpdate
+from auth_models import RegisterResponse, Role, UserCreate, UserListItem, UserResponse, UserUpdate
 from database import find_user_by_email, profiles_table, users_table
+from schemas import DeleteResponse
 from security import get_current_user, hash_password
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -26,7 +27,7 @@ def _get_user_or_404(user_id: int):
     return doc
 
 
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 def create_user(payload: UserCreate):
     existing = find_user_by_email(payload.email)
     if existing is not None:
@@ -51,15 +52,17 @@ def create_user(payload: UserCreate):
         }
     )
 
-    created = users_table.get(doc_id=user_id)
-    return _user_to_response(created)
+    return RegisterResponse(id=user_id, detail="Cuenta creada. Ya puedes iniciar sesión.")
 
 
-@router.get("", response_model=list[UserResponse])
+@router.get("", response_model=list[UserListItem])
 def list_users(current_user: dict = Depends(get_current_user)):
     if current_user["role"] != Role.ADMIN.value:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo un admin puede listar usuarios")
-    return [_user_to_response(doc) for doc in users_table.all()]
+    return [
+        UserListItem(id=doc.doc_id, email=doc["email"], role=doc["role"], is_active=doc.get("is_active", True))
+        for doc in users_table.all()
+    ]
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -104,7 +107,7 @@ def update_user(user_id: int, payload: UserUpdate, current_user: dict = Depends(
     return _user_to_response(updated)
 
 
-@router.delete("/{user_id}")
+@router.delete("/{user_id}", response_model=DeleteResponse)
 def delete_user(user_id: int, current_user: dict = Depends(get_current_user)):
     _get_user_or_404(user_id)
 
@@ -116,4 +119,4 @@ def delete_user(user_id: int, current_user: dict = Depends(get_current_user)):
     users_table.remove(doc_ids=[user_id])
     profiles_table.remove(UserQuery.user_id == user_id)
 
-    return {"detail": "Usuario eliminado", "id": user_id}
+    return DeleteResponse(detail="Usuario eliminado", id=user_id)

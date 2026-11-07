@@ -15,9 +15,7 @@ def _get_profile_by_user_id(user_id: int):
 
 
 def _profile_to_response(doc) -> ProfileResponse:
-    data = dict(doc)
-    data["id"] = doc.doc_id
-    return ProfileResponse(**data)
+    return ProfileResponse(name=doc.get("name"), phone=doc.get("phone"), address=doc.get("address"))
 
 
 @router.get("/me", response_model=ProfileResponse)

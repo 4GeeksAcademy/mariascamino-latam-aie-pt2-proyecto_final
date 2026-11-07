@@ -96,6 +96,18 @@ class SupplierResponse(SupplierBase):
     updated_at: datetime
 
 
+class DeleteResponse(BaseModel):
+    """Confirmation for every DELETE: what was removed, nothing else."""
+    detail: str
+    id: int
+
+
+class HealthResponse(BaseModel):
+    """GET / health check."""
+    status: str
+    service: str
+
+
 class RateUpdate(BaseModel):
     monthly_rate: float = Field(..., gt=0)
 

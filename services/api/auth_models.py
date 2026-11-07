@@ -31,10 +31,29 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
+    """Detail view of one account (GET/PUT /users/{id}). Only reachable by the
+    owner or an admin, so returning the email is intended."""
     id: int
     role: Role
     is_active: bool
     created_at: datetime
+
+
+class UserListItem(BaseModel):
+    """Row of the admin user list (GET /users): what an admin needs to identify
+    and manage an account. No created_at, never credentials."""
+    id: int
+    email: EmailStr
+    role: Role
+    is_active: bool
+
+
+class RegisterResponse(BaseModel):
+    """POST /users (public registration). Deliberately does NOT echo the email
+    or any account state: the client already knows what it sent and its next
+    step is POST /auth/login. `id` is safe to return (not a credential)."""
+    id: int
+    detail: str
 
 
 # ---------- Profile ----------
@@ -52,8 +71,9 @@ class ProfileUpdate(BaseModel):
 
 
 class ProfileResponse(ProfileBase):
-    id: int
-    user_id: int
+    """Profile as the UI shows it. The profile's own id and its user_id foreign
+    key are internal (the API always resolves the profile from the token)."""
+    pass
 
 
 # ---------- Auth ----------
@@ -69,6 +89,7 @@ class Token(BaseModel):
 
 
 class MeResponse(BaseModel):
+    """GET /auth/me: the caller's own email is allowed here (profile view)."""
     email: EmailStr
     role: Role
     profile: Optional[ProfileResponse] = None

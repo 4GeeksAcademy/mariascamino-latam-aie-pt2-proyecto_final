@@ -9,6 +9,7 @@ from auth_models import (
     ForgotPasswordRequest,
     MeResponse,
     MessageResponse,
+    ProfileResponse,
     ResetPasswordRequest,
     Token,
 )
@@ -46,9 +47,9 @@ def read_current_user(current_user: dict = Depends(get_current_user)):
     profile_doc = profiles_table.get(ProfileQuery.user_id == current_user["id"])
     profile = None
     if profile_doc is not None:
-        profile_data = dict(profile_doc)
-        profile_data["id"] = profile_doc.doc_id
-        profile = profile_data
+        profile = ProfileResponse(
+            name=profile_doc.get("name"), phone=profile_doc.get("phone"), address=profile_doc.get("address")
+        )
 
     return MeResponse(
         email=current_user["email"],
