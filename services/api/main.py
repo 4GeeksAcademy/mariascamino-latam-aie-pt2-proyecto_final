@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from database import init_db
+from schemas import HealthResponse
 from routers.inventory import router as inventory_router
 from routes.auth import router as auth_router
 from routes.incidents import router as incidents_router
@@ -100,6 +101,6 @@ app.include_router(incidents_router)
 app.include_router(inventory_router)
 
 
-@app.get("/")
-def root() -> dict:
-    return {"status": "ok", "service": "supplier-directory-api"}
+@app.get("/", response_model=HealthResponse)
+def root() -> HealthResponse:
+    return HealthResponse(status="ok", service="healthcore-api")

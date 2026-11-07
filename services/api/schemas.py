@@ -96,6 +96,19 @@ class SupplierResponse(SupplierBase):
     updated_at: datetime
 
 
+class SupplierListItem(BaseModel):
+    """Row of GET /suppliers. Only the columns the backoffice table renders;
+    notes, contact_email, compliance data and updated_at stay in the detail
+    view (GET /suppliers/{id})."""
+    id: int
+    name: str
+    country: Country
+    categories: list[Category]
+    monthly_rate: float
+    currency: Currency
+    status: Status
+
+
 class DeleteResponse(BaseModel):
     """Confirmation for every DELETE: what was removed, nothing else."""
     detail: str

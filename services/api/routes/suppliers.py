@@ -10,7 +10,9 @@ from schemas import (
     Country,
     RateUpdate,
     StatusUpdate,
+    DeleteResponse,
     SupplierCreate,
+    SupplierListItem,
     SupplierResponse,
 )
 from security import get_current_user
@@ -40,18 +42,18 @@ def create_supplier(
     return _to_response(suppliers_table.get(doc_id=doc_id))
 
 
-@router.get("", response_model=list[SupplierResponse])
+@router.get("", response_model=list[SupplierListItem])
 def list_suppliers(
     country: Optional[Country] = QueryParam(None, description="Filtrar por país: USA o UK"),
     category: Optional[Category] = QueryParam(None, description="Filtrar por categoría"),
     current_user: dict = Depends(get_current_user),
-) -> list[SupplierResponse]:
+) -> list[SupplierListItem]:
     docs = suppliers_table.all()
     if country is not None:
         docs = [d for d in docs if d["country"] == country.value]
     if category is not None:
         docs = [d for d in docs if category.value in d["categories"]]
-    return [_to_response(d) for d in docs]
+    return [SupplierListItem(id=d.doc_id, **{k: d[k] for k in SupplierListItem.model_fields if k != "id"}) for d in docs]
 
 
 @router.get("/{supplier_id}", response_model=SupplierResponse)
@@ -96,11 +98,11 @@ def update_status(
     return _to_response(suppliers_table.get(doc_id=supplier_id))
 
 
-@router.delete("/{supplier_id}")
+@router.delete("/{supplier_id}", response_model=DeleteResponse)
 def delete_supplier(
     supplier_id: int,
     current_user: dict = Depends(get_current_user),
-) -> dict:
+) -> DeleteResponse:
     _get_or_404(supplier_id)
     suppliers_table.remove(doc_ids=[supplier_id])
-    return {"detail": "Proveedor eliminado", "id": supplier_id}
+    return DeleteResponse(detail="Proveedor eliminado", id=supplier_id)

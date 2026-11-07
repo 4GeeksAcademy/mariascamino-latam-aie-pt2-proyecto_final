@@ -1,5 +1,6 @@
 import { requestJson } from "@/lib/api";
 
+/** Row of GET /suppliers (SupplierListItem in the API). */
 export type Supplier = {
   id: number;
   name: string;
@@ -8,9 +9,6 @@ export type Supplier = {
   monthly_rate: number;
   currency: "USD" | "GBP";
   status: "active" | "suspended";
-  contact_email: string | null;
-  notes: string | null;
-  updated_at: string;
 };
 
 export type SupplierFilters = { country: string; category: string };

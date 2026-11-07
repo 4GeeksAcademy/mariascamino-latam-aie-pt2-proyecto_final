@@ -2,7 +2,6 @@ import os
 import sys
 from json import JSONDecodeError
 from pathlib import Path
-
 from typing import Iterator
 
 from dotenv import load_dotenv
