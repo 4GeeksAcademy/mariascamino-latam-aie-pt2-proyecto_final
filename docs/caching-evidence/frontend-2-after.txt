@@ -1,0 +1,13 @@
+
+/suppliers
+  first-load JS: 561.8 KB in 16 chunks
+  "table tbody tr td" visible after: 301 ms
+  JS loaded on interaction: 3.5 KB  3m7w9irepymh3.js
+
+/incidents
+  first-load JS: 567.0 KB in 17 chunks
+  "table tbody tr" visible after: 1603 ms
+
+/inventory/orders
+  first-load JS: 561.8 KB in 16 chunks
+  "table tbody tr td" visible after: 1523 ms
