@@ -27,6 +27,7 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 import database  # noqa: E402
+from cache import cache  # noqa: E402
 import main  # noqa: E402
 import security  # noqa: E402
 
@@ -48,12 +49,15 @@ _ALL_TABLES = [
 
 @pytest.fixture(autouse=True)
 def clean_database():
-    """Every test starts from (and leaves behind) an empty database."""
+    """Every test starts from (and leaves behind) an empty database — and an
+    empty cache, so a value cached by one test never leaks into the next."""
     for table in _ALL_TABLES:
         table.truncate()
+    cache.clear()
     yield
     for table in _ALL_TABLES:
         table.truncate()
+    cache.clear()
 
 
 @pytest.fixture(autouse=True)

@@ -1,11 +1,12 @@
 from collections import Counter
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 from fastapi.responses import JSONResponse
 
 import shared_path  # noqa: F401  (adds packages/shared to sys.path)
 import incident_rules
+from cache import INCIDENT_SUMMARY, INCIDENT_SUMMARY_TTL, cache
 from database import incidents_table
 from schemas import (
     IncidentCreate,
@@ -56,6 +57,7 @@ def create_incident(payload: IncidentCreate):
     data["created_at"] = now
     data["updated_at"] = now
     new_id = incidents_table.insert(data)
+    cache.invalidate(INCIDENT_SUMMARY)  # the counts just changed
     return _to_response(incidents_table.get(doc_id=new_id))
 
 
@@ -83,7 +85,16 @@ def list_incidents(
 # NOTE: /summary must be declared BEFORE /{incident_id}, otherwise "summary"
 # would be treated as an id.
 @router.get("/summary", response_model=IncidentSummary)
-def get_summary():
+def get_summary(response: Response):
+    """Dashboard counts. Cached (shared key, TTL 60 s): the result is the same
+    for every caller and only changes when an incident is created or changes
+    status — both writes invalidate it. See CACHING_REPORT.md."""
+    summary, hit = cache.get_or_set(INCIDENT_SUMMARY, ttl=INCIDENT_SUMMARY_TTL, compute=_compute_summary)
+    response.headers["X-Cache"] = "HIT" if hit else "MISS"
+    return summary
+
+
+def _compute_summary() -> IncidentSummary:
     docs = incidents_table.all()
 
     def count(field: str, allowed: list[str]) -> dict:
@@ -119,4 +130,5 @@ def update_incident_status(incident_id: int, payload: IncidentStatusUpdate):
         return _validation_error(errors)
 
     incidents_table.update({"status": new_status, "updated_at": _now()}, doc_ids=[incident_id])
+    cache.invalidate(INCIDENT_SUMMARY)  # by_status counts just changed
     return _to_response(incidents_table.get(doc_id=incident_id))

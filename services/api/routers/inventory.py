@@ -6,10 +6,11 @@
 #   - A consumption that would leave negative stock is rejected with 400
 #     BEFORE anything is written.
 #   - HealthCore requires authentication on every inventory route.
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func
 from sqlmodel import Session, select
 
+from cache import INVENTORY_PRODUCTS, INVENTORY_PRODUCTS_TTL, cache
 from database import get_db, profiles_table, users_table
 from models import MedicalSupply, SupplyConsumption, SupplyDelivery
 from schemas import (
@@ -94,9 +95,19 @@ def _creator_names() -> dict[str, str]:
 # ---------- products (MedicalSupply) ----------
 
 @router.get("/products", response_model=list[MedicalSupplyResponse])
-def list_supplies(db: Session = Depends(get_db)):
-    rows = db.exec(_supplies_with_stock_query().order_by(MedicalSupply.id)).all()
-    return [_to_supply_response(supply, stock) for supply, stock in rows]
+def list_supplies(response: Response, db: Session = Depends(get_db)):
+    """Catalogue + computed stock. Cached (shared key, TTL 30 s): the route
+    requires login, but the answer is identical for every logged-in user (no
+    per-user fields), so one shared entry is safe. Every write that changes a
+    product or its stock invalidates it. See CACHING_REPORT.md."""
+
+    def compute() -> list[MedicalSupplyResponse]:
+        rows = db.exec(_supplies_with_stock_query().order_by(MedicalSupply.id)).all()
+        return [_to_supply_response(supply, stock) for supply, stock in rows]
+
+    supplies, hit = cache.get_or_set(INVENTORY_PRODUCTS, ttl=INVENTORY_PRODUCTS_TTL, compute=compute)
+    response.headers["X-Cache"] = "HIT" if hit else "MISS"
+    return supplies
 
 
 @router.post("/products", response_model=MedicalSupplyResponse, status_code=status.HTTP_201_CREATED)
@@ -110,6 +121,7 @@ def create_supply(payload: MedicalSupplyCreate, db: Session = Depends(get_db)):
     supply = MedicalSupply(**payload.model_dump())
     db.add(supply)
     db.commit()
+    cache.invalidate(INVENTORY_PRODUCTS)  # new row in the catalogue
     db.refresh(supply)
     return _to_supply_response(supply, 0)  # every new supply starts with zero stock
 
@@ -134,6 +146,7 @@ def register_delivery(
     delivery = SupplyDelivery(**payload.model_dump(), user_uuid=current_user["uuid"])
     db.add(delivery)
     db.commit()
+    cache.invalidate(INVENTORY_PRODUCTS)  # stock went up
     db.refresh(delivery)
     return SupplyDeliveryResponse.model_validate(delivery, from_attributes=True)
 
@@ -152,6 +165,9 @@ def register_consumption(
     if supply is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medical supply not found")
 
+    # Stock check ALWAYS reads the database, never the cache: deciding whether
+    # a consumption is allowed on a value up to 30 s old could let stock go
+    # negative.
     _, available = _get_supply_with_stock(db, payload.supply_id)
     if payload.quantity > available:
         db.rollback()  # nothing was written; release the lock
@@ -166,6 +182,7 @@ def register_consumption(
     consumption = SupplyConsumption(**payload.model_dump(), user_uuid=current_user["uuid"])
     db.add(consumption)
     db.commit()
+    cache.invalidate(INVENTORY_PRODUCTS)  # stock went down
     db.refresh(consumption)
     return SupplyConsumptionResponse.model_validate(consumption, from_attributes=True)
 
