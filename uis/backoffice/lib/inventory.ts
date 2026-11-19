@@ -162,3 +162,62 @@ export function supplyIdFromUrl(): string {
   if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("supply_id") ?? "";
 }
+
+// ---------- Order history: derived data (pure, unit-tested) ----------
+
+export type OrderTypeFilter = "all" | "inbound" | "outbound";
+
+export type OrderTotals = {
+  inboundOrders: number;
+  outboundOrders: number;
+  unitsDelivered: number;
+  unitsConsumed: number;
+  unitsWasted: number;
+  /** Share of consumed units that were discarded as expired (0–100, 1 decimal). */
+  wastePct: number;
+  /** Supply with the most units consumed, if any. */
+  topConsumed: { name: string; sku: string; units: number } | null;
+};
+
+/**
+ * One pass over the whole order history: totals by type, expiry waste and the
+ * most-consumed supply. O(n) with a Map; with ~24 000 orders this is the most
+ * expensive computation on the page, which is why the page memoizes it.
+ */
+export function summarizeOrders(orders: SupplyOrder[]): OrderTotals {
+  const totals: OrderTotals = {
+    inboundOrders: 0,
+    outboundOrders: 0,
+    unitsDelivered: 0,
+    unitsConsumed: 0,
+    unitsWasted: 0,
+    wastePct: 0,
+    topConsumed: null,
+  };
+  const consumedBySupply = new Map<number, { name: string; sku: string; units: number }>();
+
+  for (const o of orders) {
+    if (o.order_type === "inbound") {
+      totals.inboundOrders += 1;
+      totals.unitsDelivered += o.quantity;
+      continue;
+    }
+    totals.outboundOrders += 1;
+    totals.unitsConsumed += o.quantity;
+    if (o.consumption_type === "expiry_waste") totals.unitsWasted += o.quantity;
+    const entry = consumedBySupply.get(o.supply_id) ?? { name: o.supply_name, sku: o.supply_sku, units: 0 };
+    entry.units += o.quantity;
+    consumedBySupply.set(o.supply_id, entry);
+  }
+
+  for (const entry of consumedBySupply.values()) {
+    if (!totals.topConsumed || entry.units > totals.topConsumed.units) totals.topConsumed = entry;
+  }
+  totals.wastePct =
+    totals.unitsConsumed === 0 ? 0 : Math.round((totals.unitsWasted / totals.unitsConsumed) * 1000) / 10;
+  return totals;
+}
+
+export function filterOrders(orders: SupplyOrder[], type: OrderTypeFilter): SupplyOrder[] {
+  return type === "all" ? orders : orders.filter((o) => o.order_type === type);
+}
