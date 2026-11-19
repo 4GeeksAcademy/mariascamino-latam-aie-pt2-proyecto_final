@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import ErrorState from "../../../components/ErrorState";
+import ErrorState from "../../../components/LazyErrorState";
 import {
   BRANCHES,
   CATEGORIES,

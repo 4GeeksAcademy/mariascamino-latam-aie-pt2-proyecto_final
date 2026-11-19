@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import ErrorState from "../../components/ErrorState";
+import ErrorState from "../../components/LazyErrorState";
 import { useAuth } from "../../lib/auth-context";
 
 /**
