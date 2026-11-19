@@ -1,0 +1,13 @@
+
+/suppliers
+  first-load JS: 557.6 KB in 16 chunks
+  "table tbody tr td" visible after: 376 ms
+  JS loaded on interaction: 0.0 KB  
+
+/incidents
+  first-load JS: 562.9 KB in 17 chunks
+  "table tbody tr" visible after: 1736 ms
+
+/inventory/orders
+  first-load JS: 557.6 KB in 16 chunks
+  "table tbody tr td" visible after: 7286 ms

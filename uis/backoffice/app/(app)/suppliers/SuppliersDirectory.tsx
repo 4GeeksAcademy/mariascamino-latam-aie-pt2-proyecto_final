@@ -1,48 +1,19 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import type { Supplier } from "@/lib/suppliers-api";
 import { Field } from "@/components/Field";
+import ErrorState from "@/components/LazyErrorState";
+import { CATEGORIES, categoryLabel } from "./supplier-options";
 
-const CATEGORIES = [
-  "medical_supplies",
-  "laboratory_services",
-  "pharmaceutical",
-  "clinical_software",
-  "it_infrastructure",
-  "hr_and_payroll_software",
-  "cleaning_and_facilities",
-  "patient_communication",
-  "billing_and_coding_software",
-  "training_platforms",
-] as const;
-
-const COUNTRY_CURRENCY: Record<string, string> = { USA: "USD", UK: "GBP" };
-
-type NewSupplierForm = {
-  name: string;
-  country: "USA" | "UK";
-  categories: string[];
-  monthly_rate: string;
-  contact_email: string;
-  notes: string;
-};
-
-const emptyForm: NewSupplierForm = {
-  name: "",
-  country: "USA",
-  categories: [],
-  monthly_rate: "",
-  contact_email: "",
-  notes: "",
-};
-
-const categoryLabel = (cat: string) =>
-  cat
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+// Lazy loading #1 — the create form is only needed when someone registers a
+// supplier, so its code is split into its own chunk and fetched on demand.
+const loadNewSupplierForm = () => import("./NewSupplierForm");
+const NewSupplierForm = dynamic(loadNewSupplierForm, {
+  loading: () => <p className="mt-4 text-sm text-slate-400">Cargando formulario…</p>,
+});
 
 export default function SuppliersDirectory({
   initialSuppliers,
@@ -53,6 +24,7 @@ export default function SuppliersDirectory({
     suppliers,
     loading,
     loadError,
+    refresh,
     countryFilter,
     setCountryFilter,
     categoryFilter,
@@ -62,58 +34,11 @@ export default function SuppliersDirectory({
     toggleStatus,
   } = useSuppliers(initialSuppliers);
 
-  const [form, setForm] = useState<NewSupplierForm>(emptyForm);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  // Lives here (not in the form) so the open/closed state survives re-renders.
+  const [showForm, setShowForm] = useState(false);
 
   const [rateDrafts, setRateDrafts] = useState<Record<number, string>>({});
   const [rowError, setRowError] = useState<Record<number, string>>({});
-
-  const toggleCategory = (cat: string) => {
-    setForm((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(cat)
-        ? prev.categories.filter((c) => c !== cat)
-        : [...prev.categories, cat],
-    }));
-  };
-
-  const handleCreate = async (event: FormEvent) => {
-    event.preventDefault();
-    setFormError(null);
-
-    if (form.categories.length === 0) {
-      setFormError("Selecciona al menos una categoría.");
-      return;
-    }
-    const rateNumber = Number(form.monthly_rate);
-    if (!form.monthly_rate || Number.isNaN(rateNumber) || rateNumber <= 0) {
-      setFormError("La tarifa mensual debe ser un número mayor a 0.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await createSupplier({
-        name: form.name,
-        country: form.country,
-        categories: form.categories,
-        monthly_rate: rateNumber,
-        currency: COUNTRY_CURRENCY[form.country],
-        contact_email: form.contact_email || null,
-        notes: form.notes || null,
-      });
-      setForm(emptyForm);
-    } catch (err) {
-      setFormError(
-        err instanceof Error
-          ? err.message
-          : "No se pudo registrar el proveedor.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleRateUpdate = async (supplierId: number) => {
     const draft = rateDrafts[supplierId];
@@ -135,7 +60,7 @@ export default function SuppliersDirectory({
       setRowError((prev) => ({
         ...prev,
         [supplierId]:
-          err instanceof Error ? err.message : "No se pudo actualizar.",
+          err instanceof Error ? err.message : "No pudimos actualizar la tarifa. Inténtalo de nuevo.",
       }));
     }
   };
@@ -147,7 +72,7 @@ export default function SuppliersDirectory({
       setRowError((prev) => ({
         ...prev,
         [supplier.id]:
-          err instanceof Error ? err.message : "No se pudo cambiar el estado.",
+          err instanceof Error ? err.message : "No pudimos cambiar el estado. Inténtalo de nuevo.",
       }));
     }
   };
@@ -191,9 +116,11 @@ export default function SuppliersDirectory({
       </div>
 
       {loadError && (
-        <p className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">
-          {loadError}
-        </p>
+        <ErrorState
+          title="No pudimos cargar los proveedores"
+          message={loadError}
+          onRetry={refresh}
+        />
       )}
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -308,111 +235,19 @@ export default function SuppliersDirectory({
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-6">
-        <h2 className="text-lg font-semibold">Registrar nuevo proveedor</h2>
-        <form
-          onSubmit={handleCreate}
-          className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
+        <button
+          type="button"
+          aria-expanded={showForm}
+          onClick={() => setShowForm((open) => !open)}
+          // Warm-up: start downloading the chunk when the pointer gets close,
+          // so by the time the click lands the form is (usually) ready.
+          onMouseEnter={() => void loadNewSupplierForm()}
+          onFocus={() => void loadNewSupplierForm()}
+          className="text-lg font-semibold text-slate-900 hover:underline"
         >
-          <Field label="Nombre">
-            <input
-              required
-              value={form.name}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, name: e.target.value }))
-              }
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-            />
-          </Field>
-          <Field label="País">
-            <select
-              value={form.country}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  country: e.target.value as "USA" | "UK",
-                }))
-              }
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-            >
-              <option value="USA">USA (moneda: USD)</option>
-              <option value="UK">UK (moneda: GBP)</option>
-            </select>
-          </Field>
-          <fieldset className="sm:col-span-2">
-            <legend className="block text-xs font-medium text-slate-500">
-              Categorías
-            </legend>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => (
-                <label
-                  key={cat}
-                  className={`cursor-pointer rounded-full border px-3 py-1 text-xs ${
-                    form.categories.includes(cat)
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-300 text-slate-600"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={form.categories.includes(cat)}
-                    onChange={() => toggleCategory(cat)}
-                  />
-                  {categoryLabel(cat)}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <Field label={<>Tarifa mensual ({COUNTRY_CURRENCY[form.country]})</>}>
-            <input
-              required
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={form.monthly_rate}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, monthly_rate: e.target.value }))
-              }
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-            />
-          </Field>
-          <Field label="Email de contacto (opcional)">
-            <input
-              type="email"
-              value={form.contact_email}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, contact_email: e.target.value }))
-              }
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-            />
-          </Field>
-          <Field label="Notas (opcional)" className="sm:col-span-2">
-            <textarea
-              value={form.notes}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, notes: e.target.value }))
-              }
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-              rows={2}
-            />
-          </Field>
-
-          {formError && (
-            <p className="sm:col-span-2 rounded-md bg-red-50 px-4 py-2 text-sm text-red-700">
-              {formError}
-            </p>
-          )}
-
-          <div className="sm:col-span-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-            >
-              {submitting ? "Registrando…" : "Registrar proveedor"}
-            </button>
-          </div>
-        </form>
+          {showForm ? "▾" : "▸"} Registrar nuevo proveedor
+        </button>
+        {showForm && <NewSupplierForm onCreate={createSupplier} />}
       </div>
     </div>
   );

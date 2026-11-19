@@ -1,0 +1,9 @@
+endpoint                                 rows   1st ms   p50 ms   p95 ms      KB  cache
+GET /api/incidents/summary                  1     15.1      1.2      1.5     0.6  0/30 HIT
+GET /api/incidents                         94      2.3      1.5      1.7    18.8  0/30 HIT
+GET /api/incidents?status=open             28      1.2      1.3      1.6     5.5  0/30 HIT
+GET /suppliers                             15      2.7      2.1      2.7     2.1  0/30 HIT
+GET /suppliers?country=UK                   6      1.8      2.0      2.6     0.9  0/30 HIT
+GET /inventory/products                     6     14.4      3.7      6.0     0.8  0/30 HIT
+GET /inventory/orders                      10      6.6      3.6      6.6     2.6  0/30 HIT
+GET /auth/me                                1      2.4      2.0      2.3     0.1  0/30 HIT
