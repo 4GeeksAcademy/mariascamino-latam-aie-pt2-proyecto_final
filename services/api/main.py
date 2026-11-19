@@ -1,5 +1,6 @@
 # main.py
 import logging
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -17,6 +18,9 @@ from routes.suppliers import router as suppliers_router
 from routes.users import router as users_router
 
 logger = logging.getLogger("uvicorn.error")
+# One line per request with its duration. Uses uvicorn's logger so the lines
+# show up in the normal `uvicorn main:app` output without extra config.
+timing_logger = logging.getLogger("uvicorn.error.timing")
 
 
 @asynccontextmanager
@@ -43,7 +47,30 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Let the browser (DevTools / fetch) read the timing and cache headers.
+    expose_headers=["X-Response-Time-ms", "X-Cache"],
 )
+
+
+@app.middleware("http")
+async def timing_middleware(request: Request, call_next):
+    """Measure every request: the evidence used in CACHING_REPORT.md to pick
+    what to cache. The duration is also returned in the X-Response-Time-ms
+    header so the measurement script (bench_latency.py) and the browser's
+    Network tab can read it."""
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration = (time.perf_counter() - start) * 1000
+    response.headers["X-Response-Time-ms"] = f"{duration:.1f}"
+    timing_logger.info(
+        "%s %s → %s | %.1fms | cache=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration,
+        response.headers.get("X-Cache", "-"),
+    )
+    return response
 
 
 # Mensajes en español para los errores de validación más comunes de Pydantic.
