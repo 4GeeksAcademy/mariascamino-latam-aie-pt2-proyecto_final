@@ -1,20 +1,21 @@
 # routes/suppliers.py
 from datetime import datetime, timezone
 from typing import Optional
-
-from fastapi import APIRouter, HTTPException, Query as QueryParam
+from fastapi import APIRouter, Depends, HTTPException, Query as QueryParam
 from tinydb import Query
 from tinydb.table import Document
-
 from database import suppliers_table
-from models import (
+from schemas import (
     Category,
     Country,
     RateUpdate,
     StatusUpdate,
+    DeleteResponse,
     SupplierCreate,
+    SupplierListItem,
     SupplierResponse,
 )
+from security import get_current_user
 
 router = APIRouter(prefix="/suppliers", tags=["suppliers"])
 
@@ -31,35 +32,44 @@ def _get_or_404(supplier_id: int) -> Document:
 
 
 @router.post("", response_model=SupplierResponse, status_code=201)
-def create_supplier(payload: SupplierCreate) -> SupplierResponse:
+def create_supplier(
+    payload: SupplierCreate,
+    current_user: dict = Depends(get_current_user),
+) -> SupplierResponse:
     record = payload.model_dump(mode="json")
     record["updated_at"] = datetime.now(timezone.utc).isoformat()
     doc_id = suppliers_table.insert(record)
     return _to_response(suppliers_table.get(doc_id=doc_id))
 
 
-@router.get("", response_model=list[SupplierResponse])
+@router.get("", response_model=list[SupplierListItem])
 def list_suppliers(
     country: Optional[Country] = QueryParam(None, description="Filtrar por país: USA o UK"),
     category: Optional[Category] = QueryParam(None, description="Filtrar por categoría"),
-) -> list[SupplierResponse]:
+    current_user: dict = Depends(get_current_user),
+) -> list[SupplierListItem]:
     docs = suppliers_table.all()
-
     if country is not None:
         docs = [d for d in docs if d["country"] == country.value]
     if category is not None:
         docs = [d for d in docs if category.value in d["categories"]]
-
-    return [_to_response(d) for d in docs]
+    return [SupplierListItem(id=d.doc_id, **{k: d[k] for k in SupplierListItem.model_fields if k != "id"}) for d in docs]
 
 
 @router.get("/{supplier_id}", response_model=SupplierResponse)
-def get_supplier(supplier_id: int) -> SupplierResponse:
+def get_supplier(
+    supplier_id: int,
+    current_user: dict = Depends(get_current_user),
+) -> SupplierResponse:
     return _to_response(_get_or_404(supplier_id))
 
 
 @router.patch("/{supplier_id}/rate", response_model=SupplierResponse)
-def update_rate(supplier_id: int, payload: RateUpdate) -> SupplierResponse:
+def update_rate(
+    supplier_id: int,
+    payload: RateUpdate,
+    current_user: dict = Depends(get_current_user),
+) -> SupplierResponse:
     _get_or_404(supplier_id)
     suppliers_table.update(
         {
@@ -72,7 +82,11 @@ def update_rate(supplier_id: int, payload: RateUpdate) -> SupplierResponse:
 
 
 @router.patch("/{supplier_id}/status", response_model=SupplierResponse)
-def update_status(supplier_id: int, payload: StatusUpdate) -> SupplierResponse:
+def update_status(
+    supplier_id: int,
+    payload: StatusUpdate,
+    current_user: dict = Depends(get_current_user),
+) -> SupplierResponse:
     _get_or_404(supplier_id)
     suppliers_table.update(
         {
@@ -84,8 +98,11 @@ def update_status(supplier_id: int, payload: StatusUpdate) -> SupplierResponse:
     return _to_response(suppliers_table.get(doc_id=supplier_id))
 
 
-@router.delete("/{supplier_id}")
-def delete_supplier(supplier_id: int) -> dict:
+@router.delete("/{supplier_id}", response_model=DeleteResponse)
+def delete_supplier(
+    supplier_id: int,
+    current_user: dict = Depends(get_current_user),
+) -> DeleteResponse:
     _get_or_404(supplier_id)
     suppliers_table.remove(doc_ids=[supplier_id])
-    return {"detail": "Proveedor eliminado", "id": supplier_id}
+    return DeleteResponse(detail="Proveedor eliminado", id=supplier_id)
