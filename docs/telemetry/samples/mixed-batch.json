@@ -1,0 +1,130 @@
+{
+  "events": [
+    {
+      "eventId": "0b6f7c2e-1d4a-4c3b-9e5f-1a2b3c4d5e01",
+      "timestamp": "2026-11-20T14:03:12.481Z",
+      "sessionId": "04d9e2b9-baa4-4071-a001-a084155e8b17",
+      "userId": "1d1b968f-4692-4a57-ad6b-16b902216064",
+      "actorType": "user",
+      "event_type": "outbound_order_created",
+      "schemaVersion": "1.0.0",
+      "requestId": "4046f734-87ed-4e81-ab45-1e0c0eca0037",
+      "source": "backoffice",
+      "environment": "development",
+      "appVersion": "e350763",
+      "properties": {
+        "order_id": 902,
+        "clinic_id": 10,
+        "country": "UK",
+        "region": "LND",
+        "product_id": 3,
+        "product_category": "medication",
+        "product_subcategory": "medications",
+        "quantity": 6,
+        "unit": "vial",
+        "department": "chronic_care",
+        "consumption_type": "clinical_use",
+        "stock_after": 14
+      }
+    },
+    {
+      "eventId": "0b6f7c2e-1d4a-4c3b-9e5f-1a2b3c4d5e02",
+      "timestamp": "2026-11-20T14:03:12.481Z",
+      "sessionId": "206c1ef1-ba77-4569-aa58-6108ef609927",
+      "userId": "9a76cb9c-be06-4862-a40f-5e362a788dee",
+      "actorType": "user",
+      "event_type": "frontend_error_occurred",
+      "schemaVersion": "1.0.0",
+      "requestId": "6610a6ac-7282-483c-a1e1-bacde7735be7",
+      "source": "backoffice",
+      "environment": "development",
+      "appVersion": "e350763",
+      "properties": {
+        "section": "inventory_outbound",
+        "error_name": "TypeError",
+        "error_fingerprint": "0b7d2c9e4f1a3b58",
+        "boundary": "route",
+        "app_release": "e350763",
+        "occurrence_count": 1
+      }
+    },
+    {
+      "eventId": "0b6f7c2e-1d4a-4c3b-9e5f-1a2b3c4d5e03",
+      "timestamp": "2026-11-20T14:03:12.481Z",
+      "sessionId": "ecde9784-45a9-4308-ab3c-643b883dbc93",
+      "userId": "ab7cc385-2847-48ea-a598-ac7e8b1fe5f7",
+      "actorType": "user",
+      "event_type": "page_load_recorded",
+      "schemaVersion": "1.0.0",
+      "requestId": "42ffe8b5-b17c-42ac-af8a-5d64d699c17c",
+      "source": "backoffice",
+      "environment": "development",
+      "appVersion": "e350763",
+      "properties": {
+        "section": "inventory_orders",
+        "metric": "LCP",
+        "value": 1480,
+        "rating": "good",
+        "device_type": "desktop"
+      }
+    },
+    {
+      "eventId": "0b6f7c2e-1d4a-4c3b-9e5f-1a2b3c4d5e04",
+      "timestamp": "2026-11-20T14:03:12.481Z",
+      "sessionId": "3610513e-cb9a-4b3a-a5ea-89cb3eb86f94",
+      "userId": "bfa6a9a8-b9f9-4161-a7f0-4c21ed557ceb",
+      "actorType": "user",
+      "event_type": "page_viewed",
+      "schemaVersion": "1.0.0",
+      "requestId": "20289d45-d6e6-4dad-a527-33081fb0cd85",
+      "source": "backoffice",
+      "environment": "development",
+      "appVersion": "e350763",
+      "properties": {
+        "section": "inventory_orders",
+        "route_template": "/inventory/orders",
+        "referrer_section": "inventory_products",
+        "actor_role": "manager",
+        "patient_name": "should never be stored"
+      }
+    },
+    {
+      "eventId": "not-a-uuid",
+      "timestamp": "2026-11-20T14:03:12.481Z",
+      "sessionId": "3610513e-cb9a-4b3a-a5ea-89cb3eb86f94",
+      "userId": "bfa6a9a8-b9f9-4161-a7f0-4c21ed557ceb",
+      "actorType": "user",
+      "event_type": "page_viewed",
+      "schemaVersion": "1.0.0",
+      "requestId": "20289d45-d6e6-4dad-a527-33081fb0cd85",
+      "source": "backoffice",
+      "environment": "development",
+      "appVersion": "e350763",
+      "properties": {
+        "section": "inventory_orders",
+        "route_template": "/inventory/orders",
+        "referrer_section": "inventory_products",
+        "actor_role": "manager"
+      }
+    },
+    {
+      "eventId": "0b6f7c2e-1d4a-4c3b-9e5f-1a2b3c4d5e06",
+      "timestamp": "2026-11-20T14:03:12.481Z",
+      "sessionId": "3610513e-cb9a-4b3a-a5ea-89cb3eb86f94",
+      "userId": "bfa6a9a8-b9f9-4161-a7f0-4c21ed557ceb",
+      "actorType": "user",
+      "event_type": "stock_level_snapshot",
+      "schemaVersion": "1.0.0",
+      "requestId": "20289d45-d6e6-4dad-a527-33081fb0cd85",
+      "source": "backoffice",
+      "environment": "development",
+      "appVersion": "e350763",
+      "properties": {
+        "section": "inventory_orders",
+        "route_template": "/inventory/orders",
+        "referrer_section": "inventory_products",
+        "actor_role": "manager"
+      }
+    }
+  ]
+}
