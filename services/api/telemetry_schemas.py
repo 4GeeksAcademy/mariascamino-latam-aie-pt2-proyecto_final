@@ -1,9 +1,10 @@
 # telemetry_schemas.py — the HealthCore Event Envelope as Pydantic models.
 #
 # Mirrors `definitions.envelope` of docs/telemetry/event-schemas.json (the
-# approved Phase 1 contract, telemetry-plan.md §5.1). This model is the one the
-# Phase 3 collector will reuse as-is; per-event `properties` allowlists are
-# validated there against event-schemas.json, not here.
+# approved Phase 1 contract, telemetry-plan.md §5.1). TelemetryEvent is reused
+# UNCHANGED by the Phase 3 collector as a per-event validator; per-event
+# `properties` allowlists are checked against event-schemas.json in
+# telemetry_store.py.
 from typing import Any, Literal, Optional
 from uuid import UUID
 
@@ -52,13 +53,15 @@ class TelemetryEvent(BaseModel):
         return self
 
 
-class TelemetryBatch(BaseModel):
-    """Body of POST /telemetry/events: the frontend never sends events one by one."""
+class TelemetryEnvelope(BaseModel):
+    """Body of POST /telemetry/events, parsed LOOSELY: each item stays a raw
+    dict and is validated one by one with TelemetryEvent.model_validate, so
+    one bad event never makes the whole batch fail (partial acceptance)."""
 
-    model_config = ConfigDict(extra="forbid")
-
-    events: list[TelemetryEvent] = Field(..., min_length=1, max_length=MAX_EVENTS_PER_BATCH)
+    events: list[Any] = Field(..., max_length=MAX_EVENTS_PER_BATCH)
 
 
 class TelemetryReceipt(BaseModel):
     received: int
+    stored: int
+    rejected: int

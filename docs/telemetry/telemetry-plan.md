@@ -1327,3 +1327,38 @@ OK: schema valid, all examples valid, all negative cases rejected.
 ```
 
 El script comprueba que el archivo es JSON Schema draft-07 válido y que cada uno de los 41 ejemplos valida y coincide con **exactamente un** esquema. También verifica que se **rechazan**: una clave fuera de la allowlist (`patient_name`), un evento sin una propiedad obligatoria, un timestamp que no es ISO 8601, un `event_type` desconocido y una incoherencia entre `actorType` y `userId`. Por último, confirma que los 5 obligatorios existen con las propiedades mínimas del BRIEFING.
+
+---
+
+## 12. Almacenamiento: `telemetry_events` (Fase 3)
+
+El colector `POST /telemetry/events` (misma URL que el stub) valida **cada evento por separado** y guarda los válidos en una tabla append-only de Supabase con **un solo INSERT por batch**. La definición está en `services/api/migrations/001_telemetry_events.sql`, que la API aplica al arrancar (es idempotente).
+
+### 12.1 Validación por evento
+
+1. **Envelope:** `TelemetryEvent.model_validate(raw)`, el mismo modelo de la Fase 2, sin cambios.
+2. **Contrato del evento:** el JSON Schema de su `event_type` en `event-schemas.json` (tipo conocido, allowlist cerrada, tipos, enums y patrones).
+
+Si un evento falla, se rechaza solo ese evento y el resto del batch se guarda. La respuesta es `{"received", "stored", "rejected"}`. El log registra el índice y la ruta del campo que falló, nunca su valor.
+
+### 12.2 Mapeo envelope → columnas
+
+| Columna | Origen | Nota |
+|---|---|---|
+| `id` | `eventId` | El UUID del emisor es la clave de deduplicación (§5.1): `ON CONFLICT (id) DO NOTHING`, así un reintento o un `sendBeacon` duplicado no crea filas repetidas. El default `gen_random_uuid()` queda para inserciones manuales. |
+| `timestamp` | `timestamp` | Momento de la captura, en UTC. |
+| `service` | `source` | `backoffice` · `api` · `scheduler`. |
+| `event_type` | `event_type` | |
+| `level` | derivado del `event_type` | `error`: `frontend_error_occurred`, `api_error_occurred`, `scheduled_job_failed`, `email_delivery_failed`. `warn`: los `*_rejected` y `*_failed` restantes, `stock_threshold_triggered`, `stock_depleted`, `supply_expiry_flagged`, `session_expired`, `slow_query_detected`, `permission_denied`. `info`: el resto. |
+| `value` | la medida principal de `properties` | `quantity` (pedidos), `deficit` (umbral), `days_to_expiry`, `value` (Web Vitals), `duration_ms`, `time_to_submit_ms` / `time_spent_ms`, `occurrence_count`, `change_pct`… (`VALUE_FIELDS` en `telemetry_store.py`). `null` si el evento no tiene una medida. |
+| `message` | generado | Resumen de una línea armado **solo** con ids, enums y números (`stock_threshold_triggered · deficit=10 · product 1 · clinic 1`). Nunca incluye texto libre (`vendor_name`, títulos…). |
+| `tags` | `properties` + envelope | Las `properties` ya validadas contra su allowlist, con las dimensiones del BRIEFING intactas (`clinic_id`, `country`, `region`, `department`, `product_category`…), más `sessionId`, `userId`, `actorType`, `requestId`, `schemaVersion`, `environment` y `appVersion` para correlación y análisis por sesión. Las claves de `properties` son snake_case y las del envelope camelCase, así que no pueden chocar. |
+
+`country` y `region` **los deriva el servidor** a partir de `clinic_id` con el registro de clínicas (`services/api/clinics.py`, §4.4 y §5.3). Si el cliente manda otro valor, se sobrescribe. Solo se tocan las claves que el evento ya trae, de modo que la allowlist se mantiene.
+
+### 12.3 Índices e inmutabilidad
+
+- Índices: B-tree en `"timestamp"` y en `event_type`, y GIN en `tags` (búsquedas como `tags @> '{"clinic_id": 1}'`).
+- **Append-only:** los triggers `BEFORE UPDATE OR DELETE` y `BEFORE TRUNCATE` rechazan cualquier modificación, incluso desde el editor SQL. El código solo inserta.
+- La tabla tiene RLS activado y no tiene políticas, y `anon`/`authenticated` no tienen permisos: no se expone en la API REST pública de Supabase. El único que escribe es el backend.
+- Retención y supresión (§8.4): cuando se implementen, serán un job explícito y auditado que desactive el guard a propósito, nunca un `DELETE` ad hoc.

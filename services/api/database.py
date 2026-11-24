@@ -72,7 +72,20 @@ def init_db() -> None:
     """Create the inventory tables in Supabase if they don't exist (dev only;
     production would use Alembic migrations)."""
     import models  # noqa: F401  (registers the tables in SQLModel.metadata)
+    import telemetry_store
 
+    if engine.dialect.name == "postgresql":
+        # telemetry_events: the SQL migration is the source of truth (UUID
+        # default, CHECK, GIN index, append-only triggers, RLS). Idempotent.
+        # Sent through the raw DB-API cursor with no parameters, so the "%" of
+        # the plpgsql RAISE is not taken for a placeholder.
+        raw = engine.raw_connection()
+        try:
+            with raw.cursor() as cursor:
+                cursor.execute(telemetry_store.MIGRATION_SQL.read_text(encoding="utf-8"))
+            raw.commit()
+        finally:
+            raw.close()
     SQLModel.metadata.create_all(engine)
     _add_missing_columns()
 
