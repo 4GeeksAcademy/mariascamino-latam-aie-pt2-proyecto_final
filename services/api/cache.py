@@ -99,3 +99,6 @@ INCIDENT_SUMMARY_TTL = 60  # seconds
 
 INVENTORY_PRODUCTS = "inventory:products"
 INVENTORY_PRODUCTS_TTL = 30  # seconds
+
+TELEMETRY_REPORT = "telemetry:report"
+TELEMETRY_REPORT_TTL = 60  # seconds

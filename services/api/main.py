@@ -13,6 +13,7 @@ from database import init_db
 from schemas import HealthResponse
 from routers.inventory import router as inventory_router
 from routers.telemetry import router as telemetry_router
+from routers.telemetry_report import router as telemetry_report_router
 from telemetry_config import TELEMETRY_ENDPOINT
 from routes.auth import router as auth_router
 from routes.incidents import router as incidents_router
@@ -147,6 +148,7 @@ app.include_router(suppliers_router)
 app.include_router(incidents_router)
 app.include_router(inventory_router)
 app.include_router(telemetry_router)
+app.include_router(telemetry_report_router)
 
 
 @app.get("/", response_model=HealthResponse)
