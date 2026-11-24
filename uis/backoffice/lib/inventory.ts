@@ -7,7 +7,9 @@
  * InventoryApiError with a message that is safe to show in the UI.
  */
 import { buildApiError } from "./api";
-import { clearToken, getToken } from "./auth-storage";
+import { getToken } from "./auth-storage";
+import { handleSessionExpired } from "./session-telemetry";
+import { newRequestId, noteApiRequest } from "./telemetry";
 
 export const INVENTORY_API_URL =
   process.env.NEXT_PUBLIC_INVENTORY_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
@@ -22,7 +24,43 @@ export type MedicalSupply = {
   unit: string;
   country: string;
   current_stock: number;
+  expiry_date: string | null;
+  min_stock: number | null;
+  /** Stock per clinic (JSON keys are strings): {"1": 380, "4": 300}. */
+  stock_by_clinic: Record<string, number>;
 };
+
+export type NewMedicalSupply = {
+  name: string;
+  sku: string;
+  category: string;
+  unit: string;
+  country: string;
+  expiry_date: string | null;
+  min_stock: number | null;
+};
+
+/** Confirmation of an order: the clinic's stock around it + the supply's minimum. */
+type OrderStock = { stock_before: number; stock_after: number; min_stock: number | null };
+
+export type InboundOrderResult = {
+  id: number;
+  supply_id: number;
+  quantity: number;
+  vendor_name: string;
+  clinic_id: number;
+  created_at: string;
+} & OrderStock;
+
+export type OutboundOrderResult = {
+  id: number;
+  supply_id: number;
+  quantity: number;
+  consumption_type: "clinical_use" | "expiry_waste";
+  clinic_id: number;
+  department: string | null;
+  created_at: string;
+} & OrderStock;
 
 export type SupplyOrder = {
   id: number;
@@ -50,6 +88,7 @@ export type NewSupplyConsumption = {
   quantity: number;
   consumption_type: "clinical_use" | "expiry_waste";
   clinic_id: number;
+  department: string | null;
 };
 
 // ---------- Labels and business constants ----------
@@ -108,6 +147,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init.body) headers.set("Content-Type", "application/json");
+  // Correlation id (telemetry-plan §5.3): the API logs it and echoes it back;
+  // events tracked on this response carry the same requestId.
+  const requestId = newRequestId();
+  headers.set("X-Request-ID", requestId);
 
   let res: Response;
   try {
@@ -115,11 +158,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   } catch {
     throw new InventoryApiError("We couldn't reach the inventory API. Check that the server is running and try again.");
   }
+  noteApiRequest(requestId);
 
   if (res.status === 401) {
-    // Expired or invalid session: same behaviour as the rest of the backoffice.
-    clearToken();
-    if (typeof window !== "undefined") window.location.href = "/login";
+    // Expired or invalid session: same behaviour as the rest of the backoffice
+    // (session_expired is recorded before the redirect).
+    handleSessionExpired(token);
     throw new InventoryApiError("Your session has expired. Please log in again.", 401);
   }
 
@@ -145,12 +189,34 @@ export function getSupply(id: number): Promise<MedicalSupply> {
   return request<MedicalSupply>(`/inventory/products/${id}`);
 }
 
-export function createDelivery(payload: NewSupplyDelivery) {
-  return request("/inventory/orders/inbound", { method: "POST", body: JSON.stringify(payload) });
+export function createSupply(payload: NewMedicalSupply): Promise<MedicalSupply> {
+  return request<MedicalSupply>("/inventory/products", { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function createConsumption(payload: NewSupplyConsumption) {
-  return request("/inventory/orders/outbound", { method: "POST", body: JSON.stringify(payload) });
+/**
+ * Stock cannot be edited: it is derived from orders. The API answers this
+ * call with 403 on purpose; the products page uses it so an operator who
+ * tries to "fix" a number learns the right path (and the attempt is recorded
+ * as direct_stock_edit_rejected).
+ */
+export function requestStockAdjustment(supplyId: number, clinicId: number, currentStock: number) {
+  return request(`/inventory/products/${supplyId}/stock`, {
+    method: "PATCH",
+    body: JSON.stringify({ clinic_id: clinicId, current_stock: currentStock }),
+  });
+}
+
+export function createDelivery(payload: NewSupplyDelivery): Promise<InboundOrderResult> {
+  return request<InboundOrderResult>("/inventory/orders/inbound", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function createConsumption(payload: NewSupplyConsumption): Promise<OutboundOrderResult> {
+  return request<OutboundOrderResult>("/inventory/orders/outbound", { method: "POST", body: JSON.stringify(payload) });
+}
+
+/** Stock of a supply in one clinic (0 if the clinic never received it). */
+export function clinicStock(supply: Pick<MedicalSupply, "stock_by_clinic">, clinicId: number): number {
+  return supply.stock_by_clinic?.[String(clinicId)] ?? 0;
 }
 
 export function listOrders(): Promise<SupplyOrder[]> {

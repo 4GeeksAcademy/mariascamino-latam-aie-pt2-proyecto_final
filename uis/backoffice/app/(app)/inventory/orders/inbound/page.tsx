@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 
+import { useFormTelemetry } from "../../../../../hooks/useFormTelemetry";
 import {
   CLINICS,
   InventoryApiError,
@@ -11,6 +12,8 @@ import {
   supplyIdFromUrl,
   type MedicalSupply,
 } from "../../../../../lib/inventory";
+import { trackInboundOrderCreated, type DirectorySupplier } from "../../../../../lib/inventory-telemetry";
+import { getSuppliers } from "../../../../../lib/suppliers-api";
 
 type FormValues = { supply_id: string; quantity: string; vendor_name: string; clinic_id: string };
 type FormErrors = Partial<Record<keyof FormValues, string>>;
@@ -37,6 +40,11 @@ export default function NewSupplyDeliveryPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Supplier directory, only to tell whether the vendor has a contract
+  // (vendor_in_directory of inbound_order_created). Failing to load it never
+  // blocks the form.
+  const [directory, setDirectory] = useState<DirectorySupplier[]>([]);
+  const form = useFormTelemetry("inbound_order", "inventory_inbound", 4);
 
   useEffect(() => {
     // Pre-select the supply when coming from the products page.
@@ -44,12 +52,17 @@ export default function NewSupplyDeliveryPage() {
     listSupplies()
       .then(setSupplies)
       .catch((e) => setFormError(e instanceof Error ? e.message : "Could not load medical supplies."));
+    getSuppliers({ country: "", category: "" })
+      .then((list) => setDirectory(list.map((s) => ({ id: s.id, name: s.name }))))
+      .catch(() => setDirectory([]));
   }, []);
 
   function update(field: keyof FormValues, value: string) {
-    setValues((prev) => ({ ...prev, [field]: value }));
+    const next = { ...values, [field]: value };
+    setValues(next);
     setErrors((prev) => ({ ...prev, [field]: undefined }));
     setSuccess(null);
+    form.fieldChanged(field, next);
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -65,18 +78,21 @@ export default function NewSupplyDeliveryPage() {
     if (!values.clinic_id) clientErrors.clinic_id = "Select the receiving clinic.";
     if (Object.keys(clientErrors).length > 0) {
       setErrors(clientErrors);
+      form.validationFailed(clientErrors, "client");
       return;
     }
 
     setSubmitting(true);
     try {
-      await createDelivery({
+      const order = await createDelivery({
         supply_id: Number(values.supply_id),
         quantity: qty,
         vendor_name: values.vendor_name.trim(),
         clinic_id: Number(values.clinic_id),
       });
       const supply = supplies.find((s) => String(s.id) === values.supply_id);
+      if (supply) trackInboundOrderCreated(order, supply, directory);
+      form.submitted();
       setSuccess(`Delivery registered: ${qty} × ${supply?.name ?? "supply"}.`);
       setValues(EMPTY);
       setErrors({});
@@ -84,6 +100,7 @@ export default function NewSupplyDeliveryPage() {
       if (err instanceof InventoryApiError) {
         setErrors(err.fields as FormErrors);
         setFormError(err.message);
+        form.validationFailed(err.fields, "server");
       } else {
         setFormError("Something went wrong. Please try again.");
       }

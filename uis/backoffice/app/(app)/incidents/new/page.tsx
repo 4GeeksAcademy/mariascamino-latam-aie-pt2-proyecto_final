@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, ReactNode, useState } from "react";
 
+import { useFormTelemetry } from "../../../../hooks/useFormTelemetry";
 import {
   BRANCHES,
   CATEGORIES,
@@ -11,6 +12,7 @@ import {
   STATUSES,
   createIncident,
 } from "../../../../lib/incidents";
+import { track } from "../../../../lib/telemetry";
 
 type FormValues = {
   title: string;
@@ -52,11 +54,14 @@ export default function NewIncidentPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const form = useFormTelemetry("incident_create", "incidents_new", 6);
 
   function update(field: keyof FormValues, value: string) {
-    setValues((prev) => ({ ...prev, [field]: value }));
+    const next = { ...values, [field]: value };
+    setValues(next);
     setErrors((prev) => ({ ...prev, [field]: undefined }));
     setSuccess(false);
+    form.fieldChanged(field, next);
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -71,16 +76,26 @@ export default function NewIncidentPage() {
     }
     if (Object.keys(clientErrors).length > 0) {
       setErrors(clientErrors);
+      form.validationFailed(clientErrors, "client");
       return;
     }
 
     setSubmitting(true);
     try {
-      await createIncident({
+      const incident = await createIncident({
         ...values,
         title: values.title.trim(),
         description: values.description.trim(),
       });
+      // Only enums: title and description are free text that could contain
+      // patient data, so they never enter telemetry.
+      track("incident_created", {
+        incident_id: incident.id,
+        category: incident.category,
+        origin: incident.origin,
+        branch: incident.branch,
+      });
+      form.submitted();
       setValues(EMPTY);
       setErrors({});
       setSuccess(true);
@@ -88,6 +103,7 @@ export default function NewIncidentPage() {
       if (err instanceof IncidentApiError) {
         setErrors(err.fieldErrors as FormErrors);
         setFormError(err.message);
+        form.validationFailed(err.fieldErrors, "server");
       } else {
         setFormError("Something went wrong. Please try again.");
       }
