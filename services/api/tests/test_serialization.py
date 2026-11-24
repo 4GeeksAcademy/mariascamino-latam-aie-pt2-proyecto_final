@@ -66,7 +66,8 @@ def test_me_returns_own_email_and_a_flat_profile_without_ids(client, user, auth_
 
     response = client.get("/auth/me", headers=auth_headers(user))
 
-    assert _keys(response) == {"email", "role", "profile"}
+    # telemetry_id = the caller's own users.uuid, used as telemetry userId.
+    assert _keys(response) == {"email", "role", "telemetry_id", "profile"}
     assert set(response.json()["profile"]) == {"name", "phone", "address"}
     _assert_no_sensitive(response)
 
@@ -175,7 +176,12 @@ def test_order_history_is_flat_and_hides_user_uuid(client, make_user, auth_heade
     orders = client.get("/inventory/orders", headers=h)
 
     assert inbound.status_code == 201
-    assert _keys(inbound) == {"id", "supply_id", "quantity", "vendor_name", "clinic_id", "created_at"}
+    # stock_before/stock_after/min_stock: clinic stock around the order
+    # (telemetry prerequisites P3/P5), needed to detect threshold crossings.
+    assert _keys(inbound) == {
+        "id", "supply_id", "quantity", "vendor_name", "clinic_id", "created_at",
+        "stock_before", "stock_after", "min_stock",
+    }
     assert _keys(orders) == {
         "id", "order_type", "quantity", "clinic_id", "created_at", "created_by",
         "vendor_name", "consumption_type", "supply_id", "supply_name", "supply_sku",

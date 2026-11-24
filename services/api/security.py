@@ -39,8 +39,18 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(user_id: int) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": str(user_id), "exp": int(expire.timestamp())}
+    issued_at = datetime.now(timezone.utc)
+    expire = issued_at + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    # `sid` (telemetry prerequisite P7): one random UUID per login. It is the
+    # `sessionId` of every telemetry event of that session; the backoffice
+    # reads it from the token (it is not a secret). `iat` lets it compute
+    # session_age_minutes when the session expires.
+    payload = {
+        "sub": str(user_id),
+        "exp": int(expire.timestamp()),
+        "iat": int(issued_at.timestamp()),
+        "sid": str(uuid.uuid4()),
+    }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 

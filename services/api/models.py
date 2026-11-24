@@ -6,7 +6,7 @@
 # from SupplyDelivery (inbound) minus SupplyConsumption (outbound).
 #
 # There is NO User table here: user_uuid references a TinyDB user (auth DB).
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlmodel import Field, SQLModel
@@ -25,6 +25,12 @@ class MedicalSupply(SQLModel, table=True):
     category: str = Field(max_length=30)   # ppe | wound_care | diagnostics | medications | consumables
     unit: str = Field(max_length=10)       # box | unit | pack | vial
     country: str = Field(max_length=2)     # US | UK
+    # Telemetry prerequisites (docs/telemetry/telemetry-plan.md §4.2):
+    # P2 — the BRIEFING requires the expiry date on the Product.
+    expiry_date: Optional[date] = Field(default=None)
+    # P3 — minimum stock per clinic for this product; crossing it below fires
+    # stock_threshold_triggered. None = no threshold configured.
+    min_stock: Optional[int] = Field(default=None)
 
 
 class SupplyDelivery(SQLModel, table=True):
@@ -49,5 +55,8 @@ class SupplyConsumption(SQLModel, table=True):
     quantity: int
     consumption_type: str = Field(max_length=20)  # clinical_use | expiry_waste
     clinic_id: int
+    # P1 — clinical area that used the supply (never a patient identifier).
+    # Required for clinical_use, NULL for expiry_waste.
+    department: Optional[str] = Field(default=None, max_length=30)
     created_at: datetime = Field(default_factory=_utcnow)
     user_uuid: str = Field(max_length=36)
