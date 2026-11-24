@@ -7,7 +7,7 @@
 #     BEFORE anything is written.
 #   - HealthCore requires authentication on every inventory route.
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import func
+from sqlalchemy import func, literal
 from sqlmodel import Session, select
 
 from cache import INVENTORY_PRODUCTS, INVENTORY_PRODUCTS_TTL, cache
@@ -61,7 +61,45 @@ def _supplies_with_stock_query():
     )
 
 
-def _to_supply_response(supply: MedicalSupply, current_stock: int) -> MedicalSupplyResponse:
+def _stock_by_clinic(db: Session, supply_id: int | None = None) -> dict[int, dict[int, int]]:
+    """{supply_id: {clinic_id: stock}} in ONE query (prerequisite P5).
+
+    Deliveries (+qty) and consumptions (-qty) are stacked with UNION ALL and
+    summed per (supply, clinic). Clinics with no orders for a supply are absent.
+    """
+    deliveries = select(
+        SupplyDelivery.supply_id.label("supply_id"),
+        SupplyDelivery.clinic_id.label("clinic_id"),
+        SupplyDelivery.quantity.label("delta"),
+    )
+    consumptions = select(
+        SupplyConsumption.supply_id.label("supply_id"),
+        SupplyConsumption.clinic_id.label("clinic_id"),
+        (literal(0) - SupplyConsumption.quantity).label("delta"),
+    )
+    if supply_id is not None:
+        deliveries = deliveries.where(SupplyDelivery.supply_id == supply_id)
+        consumptions = consumptions.where(SupplyConsumption.supply_id == supply_id)
+    movements = deliveries.union_all(consumptions).subquery()
+    rows = db.exec(
+        select(movements.c.supply_id, movements.c.clinic_id, func.sum(movements.c.delta)).group_by(
+            movements.c.supply_id, movements.c.clinic_id
+        )
+    ).all()
+    result: dict[int, dict[int, int]] = {}
+    for sid, clinic_id, stock in rows:
+        result.setdefault(int(sid), {})[int(clinic_id)] = int(stock or 0)
+    return result
+
+
+def _clinic_stock(db: Session, supply_id: int, clinic_id: int) -> int:
+    """Stock of one supply in one clinic, always read from the database."""
+    return _stock_by_clinic(db, supply_id).get(supply_id, {}).get(clinic_id, 0)
+
+
+def _to_supply_response(
+    supply: MedicalSupply, current_stock: int, stock_by_clinic: dict[int, int] | None = None
+) -> MedicalSupplyResponse:
     return MedicalSupplyResponse(
         id=supply.id,
         name=supply.name,
@@ -70,6 +108,9 @@ def _to_supply_response(supply: MedicalSupply, current_stock: int) -> MedicalSup
         unit=supply.unit,
         country=supply.country,
         current_stock=int(current_stock),
+        expiry_date=supply.expiry_date,
+        min_stock=supply.min_stock,
+        stock_by_clinic=stock_by_clinic or {},
     )
 
 
@@ -103,7 +144,8 @@ def list_supplies(response: Response, db: Session = Depends(get_db)):
 
     def compute() -> list[MedicalSupplyResponse]:
         rows = db.exec(_supplies_with_stock_query().order_by(MedicalSupply.id)).all()
-        return [_to_supply_response(supply, stock) for supply, stock in rows]
+        by_clinic = _stock_by_clinic(db)
+        return [_to_supply_response(supply, stock, by_clinic.get(supply.id)) for supply, stock in rows]
 
     supplies, hit = cache.get_or_set(INVENTORY_PRODUCTS, ttl=INVENTORY_PRODUCTS_TTL, compute=compute)
     response.headers["X-Cache"] = "HIT" if hit else "MISS"
@@ -129,7 +171,23 @@ def create_supply(payload: MedicalSupplyCreate, db: Session = Depends(get_db)):
 @router.get("/products/{supply_id}", response_model=MedicalSupplyResponse)
 def get_supply(supply_id: int, db: Session = Depends(get_db)):
     supply, current_stock = _get_supply_with_stock(db, supply_id)
-    return _to_supply_response(supply, current_stock)
+    return _to_supply_response(supply, current_stock, _stock_by_clinic(db, supply_id).get(supply_id))
+
+
+# ---------- direct stock edit guard (prerequisite P4) ----------
+# There is no way to write stock: it is derived from the order history. These
+# routes exist so that an attempt to edit a product or its stock is answered
+# with an explicit 403 (and becomes visible as direct_stock_edit_rejected)
+# instead of a generic 405. They never write anything.
+
+_DIRECT_EDIT_DETAIL = "Stock can only change through inbound/outbound orders"
+
+
+@router.put("/products/{supply_id}", status_code=status.HTTP_403_FORBIDDEN)
+@router.patch("/products/{supply_id}", status_code=status.HTTP_403_FORBIDDEN)
+@router.patch("/products/{supply_id}/stock", status_code=status.HTTP_403_FORBIDDEN)
+def reject_direct_stock_edit(supply_id: int):
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=_DIRECT_EDIT_DETAIL)
 
 
 # ---------- orders ----------
@@ -140,15 +198,22 @@ def register_delivery(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    if db.get(MedicalSupply, payload.supply_id) is None:
+    supply = db.get(MedicalSupply, payload.supply_id)
+    if supply is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medical supply not found")
 
+    stock_before = _clinic_stock(db, payload.supply_id, payload.clinic_id)
     delivery = SupplyDelivery(**payload.model_dump(), user_uuid=current_user["uuid"])
     db.add(delivery)
     db.commit()
     cache.invalidate(INVENTORY_PRODUCTS)  # stock went up
     db.refresh(delivery)
-    return SupplyDeliveryResponse.model_validate(delivery, from_attributes=True)
+    return SupplyDeliveryResponse(
+        **delivery.model_dump(exclude={"user_uuid"}),
+        stock_before=stock_before,
+        stock_after=stock_before + delivery.quantity,
+        min_stock=supply.min_stock,
+    )
 
 
 @router.post("/orders/outbound", response_model=SupplyConsumptionResponse, status_code=status.HTTP_201_CREATED)
@@ -167,14 +232,15 @@ def register_consumption(
 
     # Stock check ALWAYS reads the database, never the cache: deciding whether
     # a consumption is allowed on a value up to 30 s old could let stock go
-    # negative.
-    _, available = _get_supply_with_stock(db, payload.supply_id)
+    # negative. The check is per clinic (P5): a clinic can only consume what
+    # it received, not another clinic's stock.
+    available = _clinic_stock(db, payload.supply_id, payload.clinic_id)
     if payload.quantity > available:
         db.rollback()  # nothing was written; release the lock
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Insufficient stock for supply '{supply.name}'. "
+                f"Insufficient stock for supply '{supply.name}' in clinic {payload.clinic_id}. "
                 f"Available: {available}, requested: {payload.quantity}."
             ),
         )
@@ -184,7 +250,12 @@ def register_consumption(
     db.commit()
     cache.invalidate(INVENTORY_PRODUCTS)  # stock went down
     db.refresh(consumption)
-    return SupplyConsumptionResponse.model_validate(consumption, from_attributes=True)
+    return SupplyConsumptionResponse(
+        **consumption.model_dump(exclude={"user_uuid"}),
+        stock_before=available,
+        stock_after=available - consumption.quantity,
+        min_stock=supply.min_stock,
+    )
 
 
 @router.get("/orders", response_model=list[OrderResponse])

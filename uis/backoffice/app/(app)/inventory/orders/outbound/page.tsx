@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 
+import { useFormTelemetry } from "../../../../../hooks/useFormTelemetry";
 import {
   CLINICS,
   CONSUMPTION_TYPES,
   InventoryApiError,
+  clinicStock,
   createConsumption,
   getSupply,
   listSupplies,
@@ -14,11 +16,22 @@ import {
   type MedicalSupply,
   type NewSupplyConsumption,
 } from "../../../../../lib/inventory";
+import {
+  trackOutboundOrderCreated,
+  trackOutboundOrderRejected,
+} from "../../../../../lib/inventory-telemetry";
+import { DEPARTMENTS } from "../../../../../lib/telemetry-domain";
 
-type FormValues = { supply_id: string; quantity: string; consumption_type: string; clinic_id: string };
+type FormValues = {
+  supply_id: string;
+  quantity: string;
+  consumption_type: string;
+  department: string;
+  clinic_id: string;
+};
 type FormErrors = Partial<Record<keyof FormValues, string>>;
 
-const EMPTY: FormValues = { supply_id: "", quantity: "", consumption_type: "", clinic_id: "" };
+const EMPTY: FormValues = { supply_id: "", quantity: "", consumption_type: "", department: "", clinic_id: "" };
 
 const inputClass =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none";
@@ -41,10 +54,13 @@ export default function NewSupplyConsumptionPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Live stock of the selected supply, fetched every time the selection changes.
-  const [stock, setStock] = useState<number | null>(null);
+  // Live data of the selected supply (stock per clinic), fetched every time
+  // the selection changes. The stock shown is the selected clinic's: a clinic
+  // can only consume what it received (P5).
+  const [current, setCurrent] = useState<MedicalSupply | null>(null);
   const [stockLoading, setStockLoading] = useState(false);
   const [stockError, setStockError] = useState<string | null>(null);
+  const form = useFormTelemetry("outbound_order", "inventory_outbound", 5);
 
   useEffect(() => {
     setValues((v) => ({ ...v, supply_id: supplyIdFromUrl() }));
@@ -55,7 +71,7 @@ export default function NewSupplyConsumptionPage() {
 
   useEffect(() => {
     if (!values.supply_id) {
-      setStock(null);
+      setCurrent(null);
       setStockError(null);
       return;
     }
@@ -63,7 +79,7 @@ export default function NewSupplyConsumptionPage() {
     setStockLoading(true);
     setStockError(null);
     getSupply(Number(values.supply_id))
-      .then((s) => !cancelled && setStock(s.current_stock))
+      .then((s) => !cancelled && setCurrent(s))
       .catch((e) => !cancelled && setStockError(e instanceof Error ? e.message : "Could not load the current stock."))
       .finally(() => !cancelled && setStockLoading(false));
     return () => {
@@ -72,13 +88,19 @@ export default function NewSupplyConsumptionPage() {
   }, [values.supply_id]);
 
   function update(field: keyof FormValues, value: string) {
-    setValues((prev) => ({ ...prev, [field]: value }));
+    const next = { ...values, [field]: value };
+    // An expiry write-off has no clinical area (department must be empty).
+    if (field === "consumption_type" && value === "expiry_waste") next.department = "";
+    setValues(next);
     setErrors((prev) => ({ ...prev, [field]: undefined }));
     setSuccess(null);
     setFormError(null);
+    form.fieldChanged(field, next);
   }
 
   const selected = supplies.find((s) => String(s.id) === values.supply_id);
+  const stock = current && values.clinic_id ? clinicStock(current, Number(values.clinic_id)) : null;
+  const isClinicalUse = values.consumption_type === "clinical_use";
   const qty = Number(values.quantity);
   // Client-side UX guard only: the API is the one that really enforces the rule.
   const exceedsStock = stock !== null && values.quantity !== "" && qty > stock;
@@ -92,32 +114,57 @@ export default function NewSupplyConsumptionPage() {
     if (!values.supply_id) clientErrors.supply_id = "Select a medical supply.";
     if (!Number.isInteger(qty) || qty <= 0) clientErrors.quantity = "Enter a whole number greater than 0.";
     if (!values.consumption_type) clientErrors.consumption_type = "Select the consumption type.";
+    if (isClinicalUse && !values.department) clientErrors.department = "Select the department that used it.";
     if (!values.clinic_id) clientErrors.clinic_id = "Select the clinic where it was consumed.";
     if (Object.keys(clientErrors).length > 0) {
       setErrors(clientErrors);
+      form.validationFailed(clientErrors, "client");
       return;
     }
 
+    const clinicId = Number(values.clinic_id);
+    const department = isClinicalUse ? values.department : null;
     setSubmitting(true);
     try {
-      await createConsumption({
+      const order = await createConsumption({
         supply_id: Number(values.supply_id),
         quantity: qty,
         consumption_type: values.consumption_type as NewSupplyConsumption["consumption_type"],
-        clinic_id: Number(values.clinic_id),
+        clinic_id: clinicId,
+        department,
       });
-      setSuccess(`Consumption registered: ${qty} × ${selected?.name ?? "supply"}.`);
+      if (selected) trackOutboundOrderCreated(order, selected);
+      form.submitted();
+      const belowMinimum = order.min_stock !== null && order.stock_after < order.min_stock;
+      setSuccess(
+        `Consumption registered: ${qty} × ${selected?.name ?? "supply"}.` +
+          (belowMinimum ? ` Clinic ${clinicId} is now below its minimum (${order.stock_after} / ${order.min_stock}).` : "")
+      );
       setValues(EMPTY);
       setErrors({});
     } catch (err) {
       if (err instanceof InventoryApiError && err.status === 400) {
         // Insufficient stock: show the API message right below the quantity field.
         setErrors({ quantity: err.message });
+        form.validationFailed({ quantity: err.message }, "server");
         // Refresh the displayed stock in case someone else consumed in the meantime.
-        getSupply(Number(values.supply_id)).then((s) => setStock(s.current_stock)).catch(() => {});
+        getSupply(Number(values.supply_id))
+          .then((s) => {
+            setCurrent(s);
+            trackOutboundOrderRejected({
+              supply: s,
+              clinicId,
+              quantity: qty,
+              availableStock: clinicStock(s, clinicId),
+              department,
+              reason: "insufficient_stock",
+            });
+          })
+          .catch(() => {});
       } else if (err instanceof InventoryApiError) {
         setErrors(err.fields as FormErrors);
         setFormError(err.message);
+        form.validationFailed(err.fields, "server");
       } else {
         setFormError("Something went wrong. Please try again.");
       }
@@ -160,21 +207,35 @@ export default function NewSupplyConsumptionPage() {
           </select>
         </Field>
 
+        <Field label="Clinic *" error={errors.clinic_id}>
+          <select className={inputClass} value={values.clinic_id} onChange={(e) => update("clinic_id", e.target.value)}>
+            <option value="">Select a clinic…</option>
+            {CLINICS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
         {values.supply_id && (
           <div aria-live="polite" className="rounded-md border border-slate-200 bg-white p-4 text-sm">
             {stockLoading ? (
               <span className="text-slate-400">Checking available stock…</span>
             ) : stockError ? (
               <span className="text-red-700">{stockError}</span>
+            ) : stock === null ? (
+              <span className="text-slate-500">Select the clinic to see its available stock.</span>
             ) : (
-              stock !== null && (
-                <span className="text-slate-700">
-                  Available stock:{" "}
-                  <strong className={stock === 0 ? "text-red-700" : "text-slate-900"}>
-                    {stock} {selected?.unit ?? "units"}
-                  </strong>
-                </span>
-              )
+              <span className="text-slate-700">
+                Available stock in clinic {values.clinic_id}:{" "}
+                <strong className={stock === 0 ? "text-red-700" : "text-slate-900"}>
+                  {stock} {selected?.unit ?? "units"}
+                </strong>
+                {current?.min_stock != null && (
+                  <span className="text-slate-500"> · minimum {current.min_stock}</span>
+                )}
+              </span>
             )}
           </div>
         )}
@@ -206,16 +267,19 @@ export default function NewSupplyConsumptionPage() {
           </select>
         </Field>
 
-        <Field label="Clinic *" error={errors.clinic_id}>
-          <select className={inputClass} value={values.clinic_id} onChange={(e) => update("clinic_id", e.target.value)}>
-            <option value="">Select a clinic…</option>
-            {CLINICS.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {isClinicalUse && (
+          <Field label="Department *" error={errors.department}>
+            <select className={inputClass} value={values.department} onChange={(e) => update("department", e.target.value)}>
+              <option value="">Select the clinical area…</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-slate-500">The area that used the supply — never a patient.</p>
+          </Field>
+        )}
 
         <button
           type="submit"

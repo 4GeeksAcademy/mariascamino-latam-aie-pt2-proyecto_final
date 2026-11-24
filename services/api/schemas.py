@@ -200,23 +200,46 @@ class StatusUpdate(BaseModel):
 # what the API accepts and returns. No endpoint returns an ORM object.
 # =====================================================================
 
+from datetime import date
 from typing import Literal
+
+from pydantic import ConfigDict
 
 SupplyCategory = Literal["ppe", "wound_care", "diagnostics", "medications", "consumables"]
 SupplyUnit = Literal["box", "unit", "pack", "vial"]
 SupplyCountry = Literal["US", "UK"]
 ConsumptionType = Literal["clinical_use", "expiry_waste"]
+# P1 — clinical area that consumed the supply (telemetry-plan.md §6, enum
+# `department`). Describes the AREA, never the person treated.
+Department = Literal[
+    "primary_care",
+    "specialty_care",
+    "chronic_care",
+    "preventive_care",
+    "womens_health",
+    "paediatric_care",
+    "mental_health",
+    "clinic_operations",
+]
 
 
 # ---------- MedicalSupply ----------
 
 class MedicalSupplyCreate(BaseModel):
-    """POST /inventory/products. No stock field: stock only changes through orders."""
+    """POST /inventory/products. No stock field: stock only changes through orders.
+
+    extra="forbid" (prerequisite P4): a body that tries to set `stock` or
+    `current_stock` is answered 422 instead of being silently ignored, so the
+    attempt is visible (direct_stock_edit_rejected)."""
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., min_length=1, max_length=200)
     sku: str = Field(..., min_length=1, max_length=50)
     category: SupplyCategory
     unit: SupplyUnit
     country: SupplyCountry
+    expiry_date: Optional[date] = None             # P2
+    min_stock: Optional[int] = Field(default=None, ge=1)  # P3
 
 
 class MedicalSupplyResponse(BaseModel):
@@ -227,6 +250,11 @@ class MedicalSupplyResponse(BaseModel):
     unit: str
     country: str
     current_stock: int  # computed: SUM(deliveries) - SUM(consumptions), never stored
+    expiry_date: Optional[date] = None
+    min_stock: Optional[int] = None
+    # P5 — the BRIEFING measures stock "in a clinic". {clinic_id: stock} for
+    # every clinic with order history for this supply (computed, never stored).
+    stock_by_clinic: dict[int, int] = Field(default_factory=dict)
 
 
 # ---------- SupplyDelivery (inbound) ----------
@@ -249,6 +277,11 @@ class SupplyDeliveryResponse(BaseModel):
     vendor_name: str
     clinic_id: int
     created_at: datetime
+    # Stock of this supply IN THIS CLINIC before/after the order, and the
+    # supply's minimum: lets the caller see a threshold crossing.
+    stock_before: int
+    stock_after: int
+    min_stock: Optional[int] = None
 
 
 # ---------- SupplyConsumption (outbound) ----------
@@ -259,6 +292,16 @@ class SupplyConsumptionCreate(BaseModel):
     quantity: int = Field(..., gt=0)
     consumption_type: ConsumptionType
     clinic_id: int = Field(..., ge=1, le=12)
+    department: Optional[Department] = None  # P1
+
+    @model_validator(mode="after")
+    def check_department(self) -> "SupplyConsumptionCreate":
+        # Clinical use always belongs to an area; an expiry write-off never does.
+        if self.consumption_type == "clinical_use" and self.department is None:
+            raise ValueError("department is required for clinical_use")
+        if self.consumption_type == "expiry_waste" and self.department is not None:
+            raise ValueError("department must be empty for expiry_waste")
+        return self
 
 
 class SupplyConsumptionResponse(BaseModel):
@@ -268,7 +311,11 @@ class SupplyConsumptionResponse(BaseModel):
     quantity: int
     consumption_type: str
     clinic_id: int
+    department: Optional[str] = None
     created_at: datetime
+    stock_before: int
+    stock_after: int
+    min_stock: Optional[int] = None
 
 
 # ---------- GET /inventory/orders ----------

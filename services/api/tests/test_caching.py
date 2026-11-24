@@ -136,7 +136,8 @@ def test_products_cached_and_invalidated_by_every_stock_write(client, user, auth
 
     client.post(
         "/inventory/orders/outbound", headers=h,
-        json={"supply_id": supply_id, "quantity": 20, "consumption_type": "clinical_use", "clinic_id": 1},
+        json={"supply_id": supply_id, "quantity": 20, "consumption_type": "clinical_use", "clinic_id": 1,
+              "department": "primary_care"},
     )
     assert client.get("/inventory/products", headers=h).json()[0]["current_stock"] == 30
 
@@ -184,7 +185,8 @@ def test_outbound_stock_check_ignores_a_stale_cache(client, user, auth_headers, 
 
     res = client.post(
         "/inventory/orders/outbound", headers=h,
-        json={"supply_id": supply_id, "quantity": 5, "consumption_type": "clinical_use", "clinic_id": 1},
+        json={"supply_id": supply_id, "quantity": 5, "consumption_type": "clinical_use", "clinic_id": 1,
+              "department": "primary_care"},
     )
     assert res.status_code == 400  # …but the stock check read the database
 

@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 
 import { API_URL, ApiError, apiFetch, buildApiError, friendlyMessage, readJson, safeFetch } from "./api";
 import { clearToken, getToken, setToken } from "./auth-storage";
+import { recordFailedLogin, syncTelemetryIdentity, trackLoginSucceeded } from "./session-telemetry";
+import { currentActorRole } from "./telemetry";
 
 export type Profile = {
   name: string | null;
@@ -22,6 +24,8 @@ export type Profile = {
 export type CurrentUser = {
   email: string;
   role: "admin" | "manager" | "user";
+  /** Pseudonymous users.uuid: the `userId` of telemetry events (never the email). */
+  telemetry_id: string;
   profile: Profile | null;
 };
 
@@ -76,7 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(friendlyMessage(res.status));
         return;
       }
-      setUser(await readJson<CurrentUser>(res));
+      const me = await readJson<CurrentUser>(res);
+      syncTelemetryIdentity(me, getToken());
+      setUser(me);
     } catch (err) {
       setUser(null);
       setError(err instanceof ApiError ? err.message : friendlyMessage(0));
@@ -107,12 +113,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!res.ok) {
+        // Only a timestamp is kept (feeds failed_attempts_before); never the email.
+        if (res.status === 401) recordFailedLogin();
         throw await buildApiError(res);
       }
 
       const data = await readJson<{ access_token: string }>(res);
       setToken(data.access_token);
       await refresh();
+      const role = currentActorRole();
+      if (role) trackLoginSucceeded(role);
     },
     [refresh]
   );
@@ -138,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearToken();
+    syncTelemetryIdentity(null, null);
     setUser(null);
     router.push("/login");
   }, [router]);

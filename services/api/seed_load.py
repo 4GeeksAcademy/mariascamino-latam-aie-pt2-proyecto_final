@@ -107,6 +107,10 @@ SUPPLY_FAMILIES = [
 VENDORS = ["MedLine Industries", "Bound Tree Medical", "Cardinal Health UK", "Henry Schein", "Owens & Minor", "NHS Supply Chain"]
 
 
+DEPARTMENTS = ["primary_care", "specialty_care", "chronic_care", "preventive_care",
+               "womens_health", "paediatric_care", "mental_health", "clinic_operations"]
+
+
 def _seed_inventory(n_supplies: int, n_deliveries: int, n_consumptions: int, user_uuids: list[str]) -> None:
     init_db()
     with Session(engine) as session:
@@ -149,9 +153,11 @@ def _seed_inventory(n_supplies: int, n_deliveries: int, n_consumptions: int, use
                 continue
             qty = min(room, RNG.randint(1, 60))
             consumed[s.id] += qty
+            waste = RNG.random() < 0.08
             session.add(SupplyConsumption(
                 supply_id=s.id, quantity=qty,
-                consumption_type="expiry_waste" if RNG.random() < 0.08 else "clinical_use",
+                consumption_type="expiry_waste" if waste else "clinical_use",
+                department=None if waste else RNG.choice(DEPARTMENTS),
                 clinic_id=RNG.randint(1, 12), user_uuid=RNG.choice(user_uuids),
                 created_at=NOW - timedelta(days=RNG.randint(0, 29), minutes=RNG.randint(0, 1440)),
             ))

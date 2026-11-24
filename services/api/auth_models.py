@@ -92,6 +92,10 @@ class MeResponse(BaseModel):
     """GET /auth/me: the caller's own email is allowed here (profile view)."""
     email: EmailStr
     role: Role
+    # The caller's own pseudonymous id (users.uuid), named for its only use:
+    # the backoffice sends it as `userId` in telemetry events, which must
+    # never carry the email or the numeric id (telemetry-plan.md §5.1).
+    telemetry_id: str
     profile: Optional[ProfileResponse] = None
 
 

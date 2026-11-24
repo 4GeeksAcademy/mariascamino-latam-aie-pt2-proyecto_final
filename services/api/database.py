@@ -74,6 +74,28 @@ def init_db() -> None:
     import models  # noqa: F401  (registers the tables in SQLModel.metadata)
 
     SQLModel.metadata.create_all(engine)
+    _add_missing_columns()
+
+
+# Columns added after the tables already existed in Supabase. create_all()
+# never alters an existing table, so they are added here, idempotently.
+# (Telemetry prerequisites P1-P3, docs/telemetry/telemetry-plan.md §4.2.)
+_ADDED_COLUMNS = {
+    "medical_supply": {"expiry_date": "DATE", "min_stock": "INTEGER"},
+    "supply_consumption": {"department": "VARCHAR(30)"},
+}
+
+
+def _add_missing_columns() -> None:
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    with engine.begin() as conn:
+        for table, columns in _ADDED_COLUMNS.items():
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            for name, sql_type in columns.items():
+                if name not in existing:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {sql_type}"))
 
 
 def get_db() -> Iterator[Session]:

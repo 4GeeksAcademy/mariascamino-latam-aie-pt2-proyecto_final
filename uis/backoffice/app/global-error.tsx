@@ -1,10 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
+
+import { reportFrontendError } from "../lib/error-telemetry";
+import { flushWithBeacon } from "../lib/telemetry";
+
 /**
  * Último recurso: reemplaza TODO el layout si este mismo falla, por eso
  * incluye su propio <html> y <body> y no depende de ningún componente.
  */
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => {
+    reportFrontendError(error, "global");
+    // The whole layout (and TelemetryProvider) is gone: send it right away.
+    flushWithBeacon();
+  }, [error]);
+
   return (
     <html lang="es">
       <body style={{ fontFamily: "system-ui, sans-serif", padding: "3rem 1.5rem", textAlign: "center" }}>

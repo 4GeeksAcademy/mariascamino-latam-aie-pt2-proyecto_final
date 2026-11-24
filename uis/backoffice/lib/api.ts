@@ -1,4 +1,6 @@
-import { clearToken, getToken } from "./auth-storage";
+import { getToken } from "./auth-storage";
+import { handleSessionExpired } from "./session-telemetry";
+import { newRequestId, noteApiRequest } from "./telemetry";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
@@ -104,12 +106,17 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   if (options.body && typeof options.body === "string" && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+  // Correlation id (telemetry-plan §5.3): echoed by the API and reused as the
+  // requestId of the telemetry events tracked on this response.
+  const requestId = newRequestId();
+  headers.set("X-Request-ID", requestId);
 
   const res = await safeFetch(`${API_URL}${path}`, { ...options, headers });
+  noteApiRequest(requestId);
 
   if (res.status === 401 && typeof window !== "undefined") {
-    clearToken();
-    window.location.href = "/login";
+    // Records session_expired (if there was a session), clears it, goes to /login.
+    handleSessionExpired(token);
   }
 
   return res;
