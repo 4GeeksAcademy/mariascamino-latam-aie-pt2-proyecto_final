@@ -1,6 +1,7 @@
 # main.py
 import logging
 import time
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -11,6 +12,8 @@ from fastapi.responses import JSONResponse
 from database import init_db
 from schemas import HealthResponse
 from routers.inventory import router as inventory_router
+from routers.telemetry import router as telemetry_router
+from telemetry_config import TELEMETRY_ENDPOINT
 from routes.auth import router as auth_router
 from routes.incidents import router as incidents_router
 from routes.profiles import router as profiles_router
@@ -27,6 +30,7 @@ timing_logger = logging.getLogger("uvicorn.error.timing")
 async def lifespan(app: FastAPI):
     # Startup: create the inventory tables in Supabase (SQLModel.metadata.create_all).
     init_db()
+    logger.info("Telemetry collector endpoint (TELEMETRY_ENDPOINT): %s", TELEMETRY_ENDPOINT)
     yield
 
 
@@ -48,8 +52,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     # Let the browser (DevTools / fetch) read the timing and cache headers.
-    expose_headers=["X-Response-Time-ms", "X-Cache"],
+    expose_headers=["X-Response-Time-ms", "X-Cache", "X-Request-ID"],
 )
+
+
+def _valid_request_id(value: str | None) -> str | None:
+    if not value:
+        return None
+    try:
+        return str(uuid.UUID(value))
+    except ValueError:
+        return None
 
 
 @app.middleware("http")
@@ -58,17 +71,24 @@ async def timing_middleware(request: Request, call_next):
     what to cache. The duration is also returned in the X-Response-Time-ms
     header so the measurement script (bench_latency.py) and the browser's
     Network tab can read it."""
+    # Telemetry prerequisite P8: correlation id. A valid X-Request-ID from the
+    # backoffice is kept (its telemetry events carry the same requestId);
+    # otherwise one is generated. It is echoed back and written in the log line.
+    request_id = _valid_request_id(request.headers.get("X-Request-ID")) or str(uuid.uuid4())
+    request.state.request_id = request_id
     start = time.perf_counter()
     response = await call_next(request)
     duration = (time.perf_counter() - start) * 1000
     response.headers["X-Response-Time-ms"] = f"{duration:.1f}"
+    response.headers["X-Request-ID"] = request_id
     timing_logger.info(
-        "%s %s → %s | %.1fms | cache=%s",
+        "%s %s → %s | %.1fms | cache=%s | req=%s",
         request.method,
         request.url.path,
         response.status_code,
         duration,
         response.headers.get("X-Cache", "-"),
+        request_id,
     )
     return response
 
@@ -126,6 +146,7 @@ app.include_router(profiles_router)
 app.include_router(suppliers_router)
 app.include_router(incidents_router)
 app.include_router(inventory_router)
+app.include_router(telemetry_router)
 
 
 @app.get("/", response_model=HealthResponse)
