@@ -21,6 +21,16 @@ module.exports = {
       },
     ],
   },
-  collectCoverageFrom: ["lib/api.ts", "lib/auth-storage.ts", "lib/incidents.ts"],
+  collectCoverageFrom: [
+    "lib/api.ts",
+    "lib/auth-storage.ts",
+    "lib/incidents.ts",
+    "lib/telemetry.ts",
+    "lib/telemetry-domain.ts",
+    "lib/inventory-telemetry.ts",
+    "lib/form-telemetry.ts",
+    "lib/session-telemetry.ts",
+    "lib/error-telemetry.ts",
+  ],
   coverageThreshold: { global: { lines: 70 } },
 };
