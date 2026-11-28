@@ -1,0 +1,169 @@
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
+
+import { API_URL, ApiError, apiFetch, buildApiError, friendlyMessage, readJson, safeFetch } from "./api";
+import { clearToken, getToken, setToken } from "./auth-storage";
+import { recordFailedLogin, syncTelemetryIdentity, trackLoginSucceeded } from "./session-telemetry";
+import { currentActorRole } from "./telemetry";
+
+export type Profile = {
+  name: string | null;
+  phone: string | null;
+  address: string | null;
+};
+
+export type CurrentUser = {
+  email: string;
+  role: "admin" | "manager" | "user";
+  /** Pseudonymous users.uuid: the `userId` of telemetry events (never the email). */
+  telemetry_id: string;
+  profile: Profile | null;
+};
+
+export type RegisterPayload = {
+  email: string;
+  password: string;
+  name?: string;
+  phone?: string;
+  address?: string;
+};
+
+type AuthContextValue = {
+  /** null mientras carga o si no hay sesión. */
+  user: CurrentUser | null;
+  /** true durante la comprobación inicial del token (evita parpadeos/redirects prematuros). */
+  loading: boolean;
+  /** Mensaje legible si no se pudo comprobar la sesión por un fallo de red/servidor (no por falta de login). */
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
+  logout: () => void;
+  /** Vuelve a pedir GET /auth/me (útil tras editar el perfil). */
+  refresh: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const refresh = useCallback(async () => {
+    if (!getToken()) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+    setError(null);
+    try {
+      const res = await apiFetch("/auth/me");
+      if (res.status === 401) {
+        // Token vencido o inválido: apiFetch ya limpió la sesión y redirige a /login.
+        setUser(null);
+        return;
+      }
+      if (!res.ok) {
+        // El servidor falló: no es un problema de credenciales, así que no
+        // tratamos al usuario como "sin sesión"; mostramos el error con reintento.
+        setUser(null);
+        setError(friendlyMessage(res.status));
+        return;
+      }
+      const me = await readJson<CurrentUser>(res);
+      syncTelemetryIdentity(me, getToken());
+      setUser(me);
+    } catch (err) {
+      setUser(null);
+      setError(err instanceof ApiError ? err.message : friendlyMessage(0));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Al montar el provider (una vez, en toda la app) revisamos si ya hay un
+  // token guardado y, si es válido, cargamos el usuario.
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      // POST /auth/login espera OAuth2PasswordRequestForm: form-urlencoded,
+      // con el email en el campo "username" (así lo define el estándar OAuth2).
+      const body = new URLSearchParams();
+      body.set("username", email);
+      body.set("password", password);
+
+      const res = await safeFetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+      });
+
+      if (!res.ok) {
+        // Only a timestamp is kept (feeds failed_attempts_before); never the email.
+        if (res.status === 401) recordFailedLogin();
+        throw await buildApiError(res);
+      }
+
+      const data = await readJson<{ access_token: string }>(res);
+      setToken(data.access_token);
+      await refresh();
+      const role = currentActorRole();
+      if (role) trackLoginSucceeded(role);
+    },
+    [refresh]
+  );
+
+  const register = useCallback(
+    async (payload: RegisterPayload) => {
+      const res = await safeFetch(`${API_URL}/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw await buildApiError(res);
+      }
+
+      // El endpoint de registro solo crea la cuenta; el login (con las mismas
+      // credenciales) es lo que nos da el token de sesión.
+      await login(payload.email, payload.password);
+    },
+    [login]
+  );
+
+  const logout = useCallback(() => {
+    clearToken();
+    syncTelemetryIdentity(null, null);
+    setUser(null);
+    router.push("/login");
+  }, [router]);
+
+  return (
+    <AuthContext.Provider value={{ user, loading, error, login, register, logout, refresh }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth debe usarse dentro de <AuthProvider>");
+  }
+  return ctx;
+}

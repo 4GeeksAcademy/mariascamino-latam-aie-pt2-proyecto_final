@@ -1,0 +1,9 @@
+INFO:     POST /auth/login → 200 | 347.9ms | cache=-
+INFO:     GET /api/incidents/summary → 200 | 38.5ms | cache=MISS
+INFO:     GET /api/incidents/summary → 200 | 1.0ms | cache=HIT
+INFO:     GET /inventory/products → 200 | 34.5ms | cache=MISS
+INFO:     GET /inventory/products → 200 | 15.0ms | cache=HIT
+INFO:     GET /inventory/orders → 200 | 729.4ms | cache=-
+INFO:     GET /suppliers → 200 | 26.9ms | cache=-
+INFO:     POST /api/incidents → 201 | 54.1ms | cache=-
+INFO:     GET /api/incidents/summary → 200 | 18.3ms | cache=MISS
