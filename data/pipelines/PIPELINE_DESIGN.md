@@ -3,6 +3,23 @@
 
 ---
 
+## Run Command
+
+```bash
+# From the monorepo root, with the API venv active:
+source services/api/.venv/bin/activate
+python data/pipelines/pipeline.py                    # processes previous calendar month
+python data/pipelines/pipeline.py --month 2026-07-01 # processes a specific month
+```
+
+**Schedule:** `CronSchedule("0 6 1 * *")` — 06:00 UTC on the first day of each month,
+so the board pack is ready by the first working day.
+
+**Dependencies required:** `prefect>=3`, `pandas`, `sqlalchemy`, `psycopg2-binary`, `python-dotenv`
+(all present in `services/api/pyproject.toml`; install prefect with `uv add "prefect>=3"`).
+
+---
+
 ## Phase 1 — Current State
 
 ### What we already have
