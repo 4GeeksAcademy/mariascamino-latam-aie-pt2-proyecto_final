@@ -33,6 +33,9 @@ export default function Nav() {
           <Link href="/telemetry" className="text-sm text-slate-600 hover:text-slate-900">
             Telemetry
           </Link>
+          <Link href="/reporting" className="text-sm text-slate-600 hover:text-slate-900">
+            Reporting
+          </Link>
           <Link href="/account/profile" className="text-sm text-slate-600 hover:text-slate-900">
             Mi perfil
           </Link>

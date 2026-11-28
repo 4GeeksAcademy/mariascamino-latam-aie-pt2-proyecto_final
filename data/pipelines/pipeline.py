@@ -1,6 +1,6 @@
 """
 data/pipelines/pipeline.py — Monthly Clinic Supply Performance Pipeline
-HealthCore · Business Performance Data Pipeline (Part 2 of 3)
+HealthCore · Business Performance Data Pipeline (Part 3 of 3 — subflow refactor)
 
 Reads from:  public.telemetry_events  (read-only, never written to)
 Writes to:   reporting.monthly_clinic_supply_performance
@@ -9,6 +9,17 @@ Writes to:   reporting.monthly_clinic_supply_performance
 Schedule:    CronSchedule("0 6 1 * *") — 06:00 UTC on the 1st of each month.
 Run command: python data/pipelines/pipeline.py [--month YYYY-MM-DD]
              (activate the API venv first: source services/api/.venv/bin/activate)
+
+Architecture (Part 3 change):
+  The main @flow now delegates to 3 mandatory subflows + 1 optional subflow.
+  Pure aggregation logic lives in data/process/supply_transforms.py so it can
+  be unit-tested without Prefect running.
+
+  monthly_clinic_supply_performance_flow  (main @flow)
+    ├─ extract_supply_telemetry_subflow       (@flow wrapping extract task)
+    ├─ transform_clinic_supply_aggregates_subflow  (@flow wrapping transform task)
+    ├─ load_clinic_supply_performance_subflow     (@flow wrapping load task)
+    └─ eval_snapshot_subflow                 (@flow, optional, return_state=True)
 """
 from __future__ import annotations
 
@@ -28,9 +39,18 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.pool import NullPool
 
 # ---------------------------------------------------------------------------
-# Environment — load DATABASE_URL from services/api/.env
+# sys.path — allow importing supply_transforms from data/process/
 # ---------------------------------------------------------------------------
 _REPO_ROOT = Path(__file__).resolve().parents[2]
+_PROCESS_DIR = _REPO_ROOT / "data" / "process"
+if str(_PROCESS_DIR) not in sys.path:
+    sys.path.insert(0, str(_PROCESS_DIR))
+
+from supply_transforms import transform_raw_frames  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Environment — load DATABASE_URL from services/api/.env
+# ---------------------------------------------------------------------------
 _ENV_PATH = _REPO_ROOT / "services" / "api" / ".env"
 load_dotenv(_ENV_PATH)
 
@@ -181,14 +201,11 @@ def _month_transform_cache_key(context, parameters: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# TASKS
+# TASKS — leaf-level units of work
 # ---------------------------------------------------------------------------
 
 @task(
     name="extract_telemetry_events",
-    # 3 retries: Supabase transaction pooler drops connections transiently;
-    # 3 attempts at 10-second intervals resolve the vast majority of such drops
-    # without human intervention.
     retries=3,
     retry_delay_seconds=10,
     description="SELECT the 4 business event types from telemetry_events for the given month.",
@@ -237,108 +254,27 @@ def extract_telemetry_events(month_start: date) -> dict[str, pd.DataFrame]:
 
 @task(
     name="transform_to_clinic_monthly_aggregates",
-    # Cache by month_start for 1 hour (see _month_transform_cache_key docstring).
     cache_key_fn=_month_transform_cache_key,
     cache_expiration=timedelta(hours=1),
-    description="Normalize JSONB tags, group by clinic×country, aggregate the 4 KPIs.",
+    description="Delegate to supply_transforms.transform_raw_frames — aggregate the 4 KPIs.",
 )
 def transform_to_clinic_monthly_aggregates(
     raw_frames: dict[str, pd.DataFrame],
     month_start: date,
 ) -> pd.DataFrame:
     """
-    TRANSFORM — produces one row per clinic for the given month with:
-      total_supply_cost        (inbound_order_created · sum of total_cost)
-      supply_consumption_count (outbound_order_created · row count)
-      critical_stockout_count  (stock_threshold_triggered · row count)
-      expiry_risk_count        (supply_expiry_flagged · row count)
+    TRANSFORM — calls the pure-Python transform_raw_frames function from
+    data/process/supply_transforms.py. Keeping business logic outside Prefect
+    makes it unit-testable without an orchestrator.
+
+    Returns one row per clinic with: total_supply_cost, supply_consumption_count,
+    critical_stockout_count, expiry_risk_count, currency, month_start, computed_at.
     """
-
-    def _count_agg(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
-        if df.empty or "clinic_id" not in df.columns:
-            return pd.DataFrame(columns=["clinic_id", "country", col_name])
-        df = df.dropna(subset=["clinic_id"])
-        return (
-            df.groupby(["clinic_id", "country"], as_index=False)
-            .agg(**{col_name: ("clinic_id", "count")})
-        )
-
-    # --- Supply cost (inbound_order_created) ---
-    inbound = raw_frames.get("inbound_order_created", pd.DataFrame())
-    if not inbound.empty and "clinic_id" in inbound.columns:
-        inbound = inbound.dropna(subset=["clinic_id"])
-        inbound["total_cost"] = pd.to_numeric(inbound["total_cost"], errors="coerce").fillna(0)
-        cost_df = (
-            inbound.groupby(["clinic_id", "country"], as_index=False)
-            .agg(total_supply_cost=("total_cost", "sum"), currency=("currency", "first"))
-        )
-    else:
-        cost_df = pd.DataFrame(columns=["clinic_id", "country", "total_supply_cost", "currency"])
-
-    consumption_df = _count_agg(
-        raw_frames.get("outbound_order_created", pd.DataFrame()),
-        "supply_consumption_count",
-    )
-    stockout_df = _count_agg(
-        raw_frames.get("stock_threshold_triggered", pd.DataFrame()),
-        "critical_stockout_count",
-    )
-    expiry_df = _count_agg(
-        raw_frames.get("supply_expiry_flagged", pd.DataFrame()),
-        "expiry_risk_count",
-    )
-
-    # Build the full clinic grid from the union of all clinic_ids seen
-    clinic_frames = [
-        df[["clinic_id", "country"]]
-        for df in [cost_df, consumption_df, stockout_df, expiry_df]
-        if not df.empty and "clinic_id" in df.columns
-    ]
-    if not clinic_frames:
-        return pd.DataFrame(columns=[
-            "clinic_id", "country", "month_start",
-            "total_supply_cost", "supply_consumption_count",
-            "critical_stockout_count", "expiry_risk_count",
-            "currency", "computed_at",
-        ])
-
-    merged = pd.concat(clinic_frames).drop_duplicates(subset=["clinic_id"]).reset_index(drop=True)
-
-    for agg_df, kpi_cols in [
-        (cost_df, ["total_supply_cost", "currency"]),
-        (consumption_df, ["supply_consumption_count"]),
-        (stockout_df, ["critical_stockout_count"]),
-        (expiry_df, ["expiry_risk_count"]),
-    ]:
-        if not agg_df.empty and "clinic_id" in agg_df.columns:
-            merged = merged.merge(agg_df[["clinic_id"] + kpi_cols], on="clinic_id", how="left")
-
-    # Fill nulls
-    for col in ["total_supply_cost"]:
-        if col not in merged.columns:
-            merged[col] = 0.0
-        else:
-            merged[col] = merged[col].fillna(0.0)
-
-    for col in ["supply_consumption_count", "critical_stockout_count", "expiry_risk_count"]:
-        if col not in merged.columns:
-            merged[col] = 0
-        else:
-            merged[col] = merged[col].fillna(0).astype(int)
-
-    # Currency: derived from country, never mixed (USD ≠ GBP per BRIEFING)
-    merged["currency"] = merged["country"].map({"US": "USD", "UK": "GBP"}).fillna("USD")
-
-    merged["month_start"] = month_start
-    merged["computed_at"] = datetime.now(timezone.utc)
-
-    return merged
+    return transform_raw_frames(raw_frames, month_start)
 
 
 @task(
     name="load_to_reporting_table",
-    # 3 retries: idempotent UPSERT means retrying is always safe; 15-second delay
-    # lets a Supabase pgbouncer timeout clear before we try again.
     retries=3,
     retry_delay_seconds=15,
     description="UPSERT clinic aggregates into reporting.monthly_clinic_supply_performance.",
@@ -400,7 +336,8 @@ def load_to_reporting_table(aggregated: pd.DataFrame) -> int:
 def save_eval_snapshot(aggregated: pd.DataFrame, month_start: date) -> None:
     """
     OPTIONAL — saves a CSV snapshot to data/eval/ for manual quality assurance.
-    Invoked with return_state=True so a failure does not abort the main ETL flow.
+    Called via eval_snapshot_subflow with return_state=True so a failure does not
+    abort the main ETL flow.
     """
     eval_dir = _REPO_ROOT / "data" / "eval"
     eval_dir.mkdir(parents=True, exist_ok=True)
@@ -410,7 +347,65 @@ def save_eval_snapshot(aggregated: pd.DataFrame, month_start: date) -> None:
 
 
 # ---------------------------------------------------------------------------
-# FLOW
+# SUBFLOWS — each wraps one task; the main flow calls subflows, not tasks
+# ---------------------------------------------------------------------------
+
+@flow(
+    name="extract_supply_telemetry_subflow",
+    description="Subflow: SELECT telemetry_events for a given month.",
+)
+def extract_supply_telemetry_subflow(month_start: date) -> dict[str, pd.DataFrame]:
+    """
+    Subflow that wraps the extract task.
+    Separating it into its own @flow gives it independent observability in Prefect UI
+    and allows independent retry configuration at the flow level.
+    """
+    return extract_telemetry_events(month_start)
+
+
+@flow(
+    name="transform_clinic_supply_aggregates_subflow",
+    description="Subflow: aggregate 4 KPIs per clinic from raw telemetry DataFrames.",
+)
+def transform_clinic_supply_aggregates_subflow(
+    raw_frames: dict[str, pd.DataFrame],
+    month_start: date,
+) -> pd.DataFrame:
+    """
+    Subflow that wraps the transform task.
+    The underlying logic is in data/process/supply_transforms.py (pure functions,
+    no Prefect dependency) so it is independently unit-testable.
+    """
+    return transform_to_clinic_monthly_aggregates(raw_frames, month_start)
+
+
+@flow(
+    name="load_clinic_supply_performance_subflow",
+    description="Subflow: UPSERT aggregated KPIs into reporting.monthly_clinic_supply_performance.",
+)
+def load_clinic_supply_performance_subflow(aggregated: pd.DataFrame) -> int:
+    """
+    Subflow that wraps the load task.
+    The UPSERT is idempotent — safe to retry at the subflow level.
+    """
+    return load_to_reporting_table(aggregated)
+
+
+@flow(
+    name="eval_snapshot_subflow",
+    description="[Optional] Subflow: write a CSV eval snapshot to data/eval/.",
+)
+def eval_snapshot_subflow(aggregated: pd.DataFrame, month_start: date) -> None:
+    """
+    Optional subflow for QA eval snapshots.
+    Called by the main flow with return_state=True so a failure here does not
+    fail the whole pipeline.
+    """
+    save_eval_snapshot(aggregated, month_start)
+
+
+# ---------------------------------------------------------------------------
+# MAIN FLOW — orchestrates the 3 mandatory + 1 optional subflow
 # ---------------------------------------------------------------------------
 
 @flow(
@@ -422,7 +417,8 @@ def save_eval_snapshot(aggregated: pd.DataFrame, month_start: date) -> None:
 )
 def monthly_clinic_supply_performance_flow(month_start: date | None = None) -> dict[str, Any]:
     """
-    Main flow — extract → transform → load → optional eval snapshot.
+    Main flow — coordinates 3 mandatory subflows (extract → transform → load)
+    plus an optional eval snapshot subflow.
 
     Args:
         month_start: First day of the month to process (YYYY-MM-01).
@@ -440,7 +436,7 @@ def monthly_clinic_supply_performance_flow(month_start: date | None = None) -> d
 
     ensure_reporting_tables(engine)
 
-    # Write "running" status at the start so the endpoint shows activity immediately
+    # Write "running" status immediately so the endpoint shows activity
     _upsert_run_log(
         engine, run_id, month_start, started_at,
         None, "running", 0, 0, 0, None,
@@ -453,24 +449,24 @@ def monthly_clinic_supply_performance_flow(month_start: date | None = None) -> d
     status = "failed"
 
     try:
-        # --- EXTRACT ---
-        raw_frames = extract_telemetry_events(month_start)
+        # --- EXTRACT subflow ---
+        raw_frames = extract_supply_telemetry_subflow(month_start)
         records_read = sum(len(df) for df in raw_frames.values())
 
-        # --- TRANSFORM ---
-        aggregated = transform_to_clinic_monthly_aggregates(raw_frames, month_start)
+        # --- TRANSFORM subflow ---
+        aggregated = transform_clinic_supply_aggregates_subflow(raw_frames, month_start)
         clinics_processed = len(aggregated)
 
-        # --- LOAD ---
-        records_written = load_to_reporting_table(aggregated)
+        # --- LOAD subflow ---
+        records_written = load_clinic_supply_performance_subflow(aggregated)
 
-        # --- OPTIONAL: eval snapshot (non-critical) ---
-        # return_state=True means a failure here returns a Failed state object
-        # instead of raising — the flow continues and the failure is logged below.
-        snapshot_state = save_eval_snapshot(aggregated, month_start, return_state=True)
+        # --- OPTIONAL: eval snapshot subflow (non-critical) ---
+        # return_state=True: a failure here returns a Failed state object instead
+        # of raising — the pipeline is marked completed and the warning is logged.
+        snapshot_state = eval_snapshot_subflow(aggregated, month_start, return_state=True)
         if snapshot_state.is_failed():
             print(
-                f"[WARN] eval snapshot failed (non-critical): "
+                f"[WARN] eval snapshot subflow failed (non-critical): "
                 f"{snapshot_state.result(raise_on_failure=False)}"
             )
 
@@ -482,7 +478,7 @@ def monthly_clinic_supply_performance_flow(month_start: date | None = None) -> d
         raise  # re-raise so Prefect marks the flow as Failed
 
     finally:
-        # Always write the final log entry — even if the flow is about to raise
+        # Always write the final log — even if the flow is about to raise
         _upsert_run_log(
             engine, run_id, month_start, started_at,
             datetime.now(timezone.utc), status,
