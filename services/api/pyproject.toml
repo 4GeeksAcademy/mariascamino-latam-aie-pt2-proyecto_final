@@ -8,15 +8,41 @@ dependencies = [
     "uvicorn[standard]",
     "tinydb",
     "pydantic[email]",
+    "python-jose[cryptography]>=3.5.0",
+    "libpass[bcrypt]>=1.9.3",
+    "python-dotenv>=1.2.3",
+    "python-multipart>=0.0.32",
+    "sendgrid>=6.11.0",
+    "sqlmodel>=0.0.48",
+    "psycopg2-binary>=2.9.13",
+    "jsonschema>=4.26.0",
+    "pandas>=3.1.1",
 ]
 
 [project.scripts]
 seed = "seed:main"
+seed-inventory = "seed_inventory:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "models", "database", "seed"]
-packages = ["routes"]
+py-modules = ["main", "models", "schemas", "database", "seed", "seed_inventory", "security", "auth_models", "password_reset", "email_service", "telemetry_config", "telemetry_schemas", "telemetry_store", "clinics"]
+packages = ["routes", "routers"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", "seed.py", ".venv/*", "*.egg-info/*"]
