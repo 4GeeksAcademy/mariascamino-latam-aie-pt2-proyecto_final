@@ -1,0 +1,5246 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://healthcore.digital/schemas/telemetry/event-schemas.json",
+  "title": "HealthCore — Telemetry event schemas",
+  "description": "Un evento válido cumple EXACTAMENTE uno de los esquemas de `oneOf` (se distinguen por `event_type`). `x-healthcore` documenta clasificación, hipótesis, decisión, entrega y PII; los validadores draft-07 lo ignoran. Fuente de verdad: este archivo. Plan: telemetry-plan.md.",
+  "x-version": "1.0.0",
+  "x-summary": {
+    "total_events": 41,
+    "mandatory": 5,
+    "opportunity": 36,
+    "stream": 10,
+    "batch": 31
+  },
+  "oneOf": [
+    {
+      "$ref": "#/definitions/inbound_order_created"
+    },
+    {
+      "$ref": "#/definitions/outbound_order_created"
+    },
+    {
+      "$ref": "#/definitions/stock_threshold_triggered"
+    },
+    {
+      "$ref": "#/definitions/direct_stock_edit_rejected"
+    },
+    {
+      "$ref": "#/definitions/supply_expiry_flagged"
+    },
+    {
+      "$ref": "#/definitions/outbound_order_rejected"
+    },
+    {
+      "$ref": "#/definitions/inventory_order_validation_failed"
+    },
+    {
+      "$ref": "#/definitions/stock_depleted"
+    },
+    {
+      "$ref": "#/definitions/stock_threshold_recovered"
+    },
+    {
+      "$ref": "#/definitions/product_created"
+    },
+    {
+      "$ref": "#/definitions/product_creation_rejected"
+    },
+    {
+      "$ref": "#/definitions/login_succeeded"
+    },
+    {
+      "$ref": "#/definitions/login_failed"
+    },
+    {
+      "$ref": "#/definitions/session_expired"
+    },
+    {
+      "$ref": "#/definitions/password_reset_requested"
+    },
+    {
+      "$ref": "#/definitions/password_reset_completed"
+    },
+    {
+      "$ref": "#/definitions/password_reset_failed"
+    },
+    {
+      "$ref": "#/definitions/permission_denied"
+    },
+    {
+      "$ref": "#/definitions/user_role_changed"
+    },
+    {
+      "$ref": "#/definitions/user_registered"
+    },
+    {
+      "$ref": "#/definitions/user_deleted"
+    },
+    {
+      "$ref": "#/definitions/supplier_status_changed"
+    },
+    {
+      "$ref": "#/definitions/supplier_rate_changed"
+    },
+    {
+      "$ref": "#/definitions/supplier_contract_renewal_flagged"
+    },
+    {
+      "$ref": "#/definitions/incident_created"
+    },
+    {
+      "$ref": "#/definitions/incident_status_changed"
+    },
+    {
+      "$ref": "#/definitions/page_viewed"
+    },
+    {
+      "$ref": "#/definitions/form_started"
+    },
+    {
+      "$ref": "#/definitions/form_submitted"
+    },
+    {
+      "$ref": "#/definitions/form_abandoned"
+    },
+    {
+      "$ref": "#/definitions/form_validation_failed"
+    },
+    {
+      "$ref": "#/definitions/api_latency_recorded"
+    },
+    {
+      "$ref": "#/definitions/slow_query_detected"
+    },
+    {
+      "$ref": "#/definitions/page_load_recorded"
+    },
+    {
+      "$ref": "#/definitions/api_error_occurred"
+    },
+    {
+      "$ref": "#/definitions/frontend_error_occurred"
+    },
+    {
+      "$ref": "#/definitions/request_validation_failed"
+    },
+    {
+      "$ref": "#/definitions/email_delivery_failed"
+    },
+    {
+      "$ref": "#/definitions/scheduled_job_completed"
+    },
+    {
+      "$ref": "#/definitions/scheduled_job_failed"
+    },
+    {
+      "$ref": "#/definitions/telemetry_event_rejected"
+    }
+  ],
+  "definitions": {
+    "envelope": {
+      "type": "object",
+      "description": "Event Envelope estándar de HealthCore. Todo evento lo cumple; solo `properties` cambia por evento.",
+      "additionalProperties": false,
+      "required": [
+        "eventId",
+        "timestamp",
+        "sessionId",
+        "userId",
+        "actorType",
+        "event_type",
+        "schemaVersion",
+        "requestId",
+        "source",
+        "environment",
+        "properties"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+          "description": "UUID v4 generado por el emisor. Clave de deduplicación (entrega at-least-once)."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+          "description": "Momento en que OCURRIÓ el hecho, ISO 8601 en UTC con milisegundos (`2026-11-20T14:03:12.481Z`). Nunca hora local."
+        },
+        "sessionId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid",
+          "description": "Claim `sid` del JWT si hay sesión; si no, header `X-Session-ID` (sesión anónima del navegador); null en jobs del scheduler."
+        },
+        "userId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid",
+          "description": "UUID seudónimo del empleado (`users.uuid` de TinyDB). Nunca email, nombre ni el `doc_id` numérico. null si actorType ≠ user."
+        },
+        "actorType": {
+          "type": "string",
+          "enum": [
+            "user",
+            "anonymous",
+            "system"
+          ],
+          "description": "Quién originó el evento: empleado identificado, visitante sin sesión o proceso interno."
+        },
+        "event_type": {
+          "type": "string",
+          "pattern": "^[a-z]+(_[a-z]+)+$",
+          "description": "Taxonomía `entity_action` en snake_case, verbo en participio (sección 5.2)."
+        },
+        "schemaVersion": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Versión semántica del esquema de ESTE event_type."
+        },
+        "requestId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Correlación frontend–backend–logs: header `X-Request-ID`. En eventos solo de frontend, un UUID por interacción; en jobs, el ID de la ejecución."
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "api",
+            "backoffice",
+            "scheduler"
+          ],
+          "description": "Componente que emite."
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "development",
+            "staging",
+            "production"
+          ],
+          "description": "Entorno. Los eventos de development nunca llegan al almacén de producción."
+        },
+        "appVersion": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{7,40}$",
+          "description": "Opcional. SHA corto del commit desplegado."
+        },
+        "properties": {
+          "type": "object",
+          "description": "Payload específico del evento (allowlist estricta por evento)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "actorType": {
+                "const": "user"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "userId": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actorType": {
+                "enum": [
+                  "anonymous",
+                  "system"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "userId": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "actorType": {
+                "const": "system"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "sessionId": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "inbound_order_created": {
+      "title": "inbound_order_created",
+      "description": "Se emite cuando: Una clínica registra la recepción de insumos de un proveedor y la fila `supply_delivery` se guarda.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "inbound_order_created"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "order_id",
+                "clinic_id",
+                "country",
+                "region",
+                "product_id",
+                "product_category",
+                "quantity",
+                "unit",
+                "supplier_id",
+                "vendor_in_directory",
+                "vendor_name",
+                "stock_after"
+              ],
+              "properties": {
+                "order_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del pedido en su tabla (`supply_delivery.id` / `supply_consumption.id`)."
+                },
+                "clinic_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Clínica (1–12) según el registro de clínicas (sección 4.4)."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "US",
+                    "UK"
+                  ],
+                  "description": "País de la clínica, derivado del registro de clínicas (nunca enviado por el cliente)."
+                },
+                "region": {
+                  "type": "string",
+                  "enum": [
+                    "TX",
+                    "FL",
+                    "GA",
+                    "LND",
+                    "MAN"
+                  ],
+                  "description": "Estado (US) o ciudad (UK) de la clínica, derivado del registro."
+                },
+                "product_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del producto (`medical_supply.id`)."
+                },
+                "product_category": {
+                  "type": "string",
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment"
+                  ],
+                  "description": "Categoría del BRIEFING (mapeo desde la categoría del modelo, sección 4.3)."
+                },
+                "product_subcategory": {
+                  "type": "string",
+                  "enum": [
+                    "ppe",
+                    "wound_care",
+                    "diagnostics",
+                    "medications",
+                    "consumables"
+                  ],
+                  "description": "Categoría original del modelo (`medical_supply.category`), para no perder detalle."
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Unidades del pedido (en la unidad del producto)."
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "box",
+                    "unit",
+                    "pack",
+                    "vial"
+                  ],
+                  "description": "Unidad del producto."
+                },
+                "supplier_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "description": "Proveedor del directorio si `vendor_name` coincide con uno; null si no."
+                },
+                "vendor_in_directory": {
+                  "type": "boolean",
+                  "description": "true si el proveedor está en el directorio de proveedores (contrato, BAA/DPA)."
+                },
+                "vendor_name": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "description": "Nombre del proveedor normalizado (trim + minúsculas)."
+                },
+                "stock_after": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Stock calculado del producto en esa clínica después del pedido."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "mandatory",
+        "emitter": "API · `POST /inventory/orders/inbound` (después del `commit`)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "cuánto y qué insumo se compra, por clínica y por proveedor",
+        "decision": "consolidar compras entre clínicas y negociar mejores condiciones con los proveedores (Tom / Compras)",
+        "delivery": "batch",
+        "cadence": "cada hora",
+        "deliveryJustification": "La negociación con proveedores es mensual/trimestral: nadie decide nada en segundos con este dato. El stock y el umbral se calculan en la propia transacción de la API, no desde el pipeline, así que no hace falta streaming.",
+        "pii": "Sin PHI. `vendor_name` es un nombre de empresa: se normaliza (trim, minúsculas, máx. 100) y se descarta si coincide con un patrón de email/teléfono. `userId` del envelope es el UUID seudónimo del empleado.",
+        "throttle": "Ninguno (volumen bajo: decenas por clínica y día).",
+        "allowlist": [
+          "order_id",
+          "clinic_id",
+          "country",
+          "region",
+          "product_id",
+          "product_category",
+          "product_subcategory",
+          "quantity",
+          "unit",
+          "supplier_id",
+          "vendor_in_directory",
+          "vendor_name",
+          "stock_after"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "f9e826ae-fb9d-44ec-a5ae-5e800b2c66e2",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "8a207bb9-0c33-46fb-a0c1-aaa839d56912",
+          "userId": "52f6c214-23b5-4805-a221-c36a9698cb5c",
+          "actorType": "user",
+          "event_type": "inbound_order_created",
+          "schemaVersion": "1.0.0",
+          "requestId": "d4bbaefd-defd-4eaf-a6d9-18321627e999",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "order_id": 418,
+            "clinic_id": 4,
+            "country": "US",
+            "region": "FL",
+            "product_id": 12,
+            "product_category": "ppe",
+            "product_subcategory": "ppe",
+            "quantity": 40,
+            "unit": "box",
+            "supplier_id": 7,
+            "vendor_in_directory": true,
+            "vendor_name": "medline industries",
+            "stock_after": 65
+          }
+        }
+      ]
+    },
+    "outbound_order_created": {
+      "title": "outbound_order_created",
+      "description": "Se emite cuando: Una clínica registra el consumo de un insumo en la actividad de un departamento y la fila `supply_consumption` se guarda.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "outbound_order_created"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "order_id",
+                "clinic_id",
+                "country",
+                "region",
+                "product_id",
+                "product_category",
+                "quantity",
+                "unit",
+                "department",
+                "consumption_type",
+                "stock_after"
+              ],
+              "properties": {
+                "order_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del pedido en su tabla (`supply_delivery.id` / `supply_consumption.id`)."
+                },
+                "clinic_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Clínica (1–12) según el registro de clínicas (sección 4.4)."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "US",
+                    "UK"
+                  ],
+                  "description": "País de la clínica, derivado del registro de clínicas (nunca enviado por el cliente)."
+                },
+                "region": {
+                  "type": "string",
+                  "enum": [
+                    "TX",
+                    "FL",
+                    "GA",
+                    "LND",
+                    "MAN"
+                  ],
+                  "description": "Estado (US) o ciudad (UK) de la clínica, derivado del registro."
+                },
+                "product_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del producto (`medical_supply.id`)."
+                },
+                "product_category": {
+                  "type": "string",
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment"
+                  ],
+                  "description": "Categoría del BRIEFING (mapeo desde la categoría del modelo, sección 4.3)."
+                },
+                "product_subcategory": {
+                  "type": "string",
+                  "enum": [
+                    "ppe",
+                    "wound_care",
+                    "diagnostics",
+                    "medications",
+                    "consumables"
+                  ],
+                  "description": "Categoría original del modelo (`medical_supply.category`), para no perder detalle."
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Unidades del pedido (en la unidad del producto)."
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "box",
+                    "unit",
+                    "pack",
+                    "vial"
+                  ],
+                  "description": "Unidad del producto."
+                },
+                "department": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "primary_care",
+                    "specialty_care",
+                    "chronic_care",
+                    "preventive_care",
+                    "womens_health",
+                    "paediatric_care",
+                    "mental_health",
+                    "clinic_operations",
+                    null
+                  ],
+                  "description": "Área clínica que consumió el insumo. Obligatorio; null SOLO si `consumption_type` = `expiry_waste`. NUNCA un identificador de paciente."
+                },
+                "consumption_type": {
+                  "type": "string",
+                  "enum": [
+                    "clinical_use",
+                    "expiry_waste"
+                  ],
+                  "description": "Uso clínico o descarte por caducidad (`supply_consumption.consumption_type`)."
+                },
+                "stock_after": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Stock calculado del producto en esa clínica después del pedido."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "mandatory",
+        "emitter": "API · `POST /inventory/orders/outbound` (después del `commit`)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "qué insumos se consumen más y a qué ritmo, por clínica y por departamento",
+        "decision": "ajustar la reposición automática de insumos críticos por clínica",
+        "delivery": "batch",
+        "cadence": "cada hora",
+        "deliveryJustification": "La reposición se planifica por día/semana. La urgencia real (quedarse sin stock) la cubren `stock_threshold_triggered` y `stock_depleted`, que sí van por stream.",
+        "pii": "Sin PHI: el consumo se asocia a `department`, nunca a un paciente. El esquema no tiene ningún campo libre.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "order_id",
+          "clinic_id",
+          "country",
+          "region",
+          "product_id",
+          "product_category",
+          "product_subcategory",
+          "quantity",
+          "unit",
+          "department",
+          "consumption_type",
+          "stock_after"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "5ce93686-41d7-4b30-a6cb-00db82298b9f",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "04d9e2b9-baa4-4071-a001-a084155e8b17",
+          "userId": "1d1b968f-4692-4a57-ad6b-16b902216064",
+          "actorType": "user",
+          "event_type": "outbound_order_created",
+          "schemaVersion": "1.0.0",
+          "requestId": "4046f734-87ed-4e81-ab45-1e0c0eca0037",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "order_id": 902,
+            "clinic_id": 10,
+            "country": "UK",
+            "region": "LND",
+            "product_id": 3,
+            "product_category": "medication",
+            "product_subcategory": "medications",
+            "quantity": 6,
+            "unit": "vial",
+            "department": "chronic_care",
+            "consumption_type": "clinical_use",
+            "stock_after": 14
+          }
+        }
+      ]
+    },
+    "stock_threshold_triggered": {
+      "title": "stock_threshold_triggered",
+      "description": "Se emite cuando: Tras un consumo, el stock del producto **en esa clínica** cruza de `>= min_stock` a `< min_stock`. Solo al cruzar (ver debounce).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "stock_threshold_triggered"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "clinic_id",
+                "country",
+                "region",
+                "product_id",
+                "product_category",
+                "quantity",
+                "min_stock",
+                "deficit",
+                "unit",
+                "is_critical",
+                "triggering_order_id"
+              ],
+              "properties": {
+                "clinic_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Clínica (1–12) según el registro de clínicas (sección 4.4)."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "US",
+                    "UK"
+                  ],
+                  "description": "País de la clínica, derivado del registro de clínicas (nunca enviado por el cliente)."
+                },
+                "region": {
+                  "type": "string",
+                  "enum": [
+                    "TX",
+                    "FL",
+                    "GA",
+                    "LND",
+                    "MAN"
+                  ],
+                  "description": "Estado (US) o ciudad (UK) de la clínica, derivado del registro."
+                },
+                "product_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del producto (`medical_supply.id`)."
+                },
+                "product_category": {
+                  "type": "string",
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment"
+                  ],
+                  "description": "Categoría del BRIEFING (mapeo desde la categoría del modelo, sección 4.3)."
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Stock que queda en la clínica tras el pedido que disparó la alerta."
+                },
+                "min_stock": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Mínimo configurado para el producto (sección 4.3)."
+                },
+                "deficit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "`min_stock - quantity`."
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "box",
+                    "unit",
+                    "pack",
+                    "vial"
+                  ],
+                  "description": "Unidad del producto."
+                },
+                "is_critical": {
+                  "type": "boolean",
+                  "description": "true si `product_category` ∈ {medication, ppe}: decide si se pagina a Clinical Ops."
+                },
+                "triggering_order_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "`supply_consumption.id` que cruzó el umbral."
+                },
+                "department": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "primary_care",
+                    "specialty_care",
+                    "chronic_care",
+                    "preventive_care",
+                    "womens_health",
+                    "paediatric_care",
+                    "mental_health",
+                    "clinic_operations",
+                    null
+                  ],
+                  "description": "Departamento del consumo que cruzó el umbral."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "mandatory",
+        "emitter": "API · misma transacción que `POST /inventory/orders/outbound`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "con qué frecuencia una clínica se queda corta de un insumo crítico (PPE, medicación)",
+        "decision": "priorizar la reposición urgente y escalar a Marcus Reid (Clinical Operations)",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Un faltante de PPE o medicación afecta la atención de hoy. Si el aviso llega en el batch nocturno, la reposición urgente llega un día tarde.",
+        "pii": "Sin PHI.",
+        "throttle": "Debounce por estado: se emite una vez al cruzar el umbral y no se vuelve a emitir para ese (producto, clínica) hasta que `stock_threshold_recovered` lo rearme.",
+        "allowlist": [
+          "clinic_id",
+          "country",
+          "region",
+          "product_id",
+          "product_category",
+          "quantity",
+          "min_stock",
+          "deficit",
+          "unit",
+          "is_critical",
+          "triggering_order_id",
+          "department"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "b6466932-10a9-4324-a969-a359d6f2b98f",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "872f8e26-a7a3-40da-a3b4-83974a0e1d3b",
+          "userId": "ae5b9125-1744-40ce-a1e8-0bfa3b8bc1fe",
+          "actorType": "user",
+          "event_type": "stock_threshold_triggered",
+          "schemaVersion": "1.0.0",
+          "requestId": "eb559e17-b894-4ee0-a8e8-127cc833fec3",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "clinic_id": 4,
+            "country": "US",
+            "region": "FL",
+            "product_id": 12,
+            "product_category": "ppe",
+            "quantity": 8,
+            "min_stock": 20,
+            "deficit": 12,
+            "unit": "box",
+            "is_critical": true,
+            "triggering_order_id": 903,
+            "department": "primary_care"
+          }
+        }
+      ]
+    },
+    "direct_stock_edit_rejected": {
+      "title": "direct_stock_edit_rejected",
+      "description": "Se emite cuando: Un usuario intenta fijar el stock fuera de un pedido (rutas de edición de producto o un campo `stock`/`current_stock` en el body) y la API responde 403/422 sin escribir nada.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "direct_stock_edit_rejected"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "clinic_id",
+                "country",
+                "product_id",
+                "product_category",
+                "quantity",
+                "attempt_channel",
+                "http_method",
+                "route_template",
+                "rejection_status_code",
+                "actor_role"
+              ],
+              "properties": {
+                "clinic_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Clínica del body si viene; si no, clínica base del usuario (prerrequisito P6, sección 4.2); null si no hay ninguna."
+                },
+                "country": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "US",
+                    "UK",
+                    null
+                  ],
+                  "description": "País del producto (`medical_supply.country`) o de la clínica; null si no se conoce."
+                },
+                "product_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "description": "ID del producto; null si el producto no existe."
+                },
+                "product_category": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment",
+                    null
+                  ],
+                  "description": "Categoría del BRIEFING; null si el producto no existe."
+                },
+                "quantity": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Valor de stock que se intentó fijar; null si no se envió número."
+                },
+                "attempt_channel": {
+                  "type": "string",
+                  "enum": [
+                    "put_product",
+                    "patch_product",
+                    "patch_stock",
+                    "create_with_stock"
+                  ],
+                  "description": "Por dónde llegó el intento."
+                },
+                "http_method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ],
+                  "description": "Método HTTP."
+                },
+                "route_template": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9_\\-/\\[\\]{}]*$",
+                  "maxLength": 120,
+                  "description": "Plantilla de ruta (`/inventory/products/{supply_id}`), nunca la URL real con IDs ni query string."
+                },
+                "rejection_status_code": {
+                  "type": "integer",
+                  "enum": [
+                    403,
+                    422
+                  ],
+                  "description": "Respuesta enviada."
+                },
+                "actor_role": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "user",
+                    null
+                  ],
+                  "description": "Rol del usuario autenticado al momento del evento."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "compliance",
+        "classification": "mandatory",
+        "emitter": "API · rutas guardián `PUT/PATCH /inventory/products/{supply_id}`, `PATCH /inventory/products/{supply_id}/stock` y validador de `POST /inventory/products`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si el personal intenta saltarse los controles de trazabilidad de insumos",
+        "decision": "reforzar formación o permisos en la clínica donde más ocurre (y, si se repite en minutos, revisar la cuenta)",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Alimenta las alertas de compliance de Claire Whitfield. Varios intentos seguidos de la misma cuenta pueden ser una cuenta comprometida o un script: hay que verlo mientras pasa, no al día siguiente.",
+        "pii": "Sin PHI. Identifica al empleado solo por `userId` seudónimo y `actor_role`. El valor intentado (`quantity`) es un número de stock, no dato personal.",
+        "throttle": "Ninguno sobre el evento (cada intento cuenta para compliance). La alerta se deduplica: 1 aviso por usuario cada 15 min.",
+        "allowlist": [
+          "clinic_id",
+          "country",
+          "product_id",
+          "product_category",
+          "quantity",
+          "attempt_channel",
+          "http_method",
+          "route_template",
+          "rejection_status_code",
+          "actor_role"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "8a4628cd-bcc5-4edf-a378-23496ae2dbd3",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "a6e19390-7bb5-45fc-a57d-c2686f870cb8",
+          "userId": "e0bbbb76-e399-4a5e-afe3-59cd10ceda9b",
+          "actorType": "user",
+          "event_type": "direct_stock_edit_rejected",
+          "schemaVersion": "1.0.0",
+          "requestId": "2291ac22-94f9-4222-a6be-8c329684627b",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "clinic_id": 2,
+            "country": "US",
+            "product_id": 5,
+            "product_category": "consumable",
+            "quantity": 500,
+            "attempt_channel": "patch_stock",
+            "http_method": "PATCH",
+            "route_template": "/inventory/products/{supply_id}/stock",
+            "rejection_status_code": 403,
+            "actor_role": "manager"
+          }
+        }
+      ]
+    },
+    "supply_expiry_flagged": {
+      "title": "supply_expiry_flagged",
+      "description": "Se emite cuando: Un producto con `expiry_date` y stock > 0 en una clínica entra en un tramo de caducidad: 30, 14 o 7 días, o caducado.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "supply_expiry_flagged"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "clinic_id",
+                "country",
+                "region",
+                "product_id",
+                "product_category",
+                "quantity",
+                "unit",
+                "expiry_date",
+                "days_to_expiry",
+                "expiry_bucket"
+              ],
+              "properties": {
+                "clinic_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Clínica (1–12) según el registro de clínicas (sección 4.4)."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "US",
+                    "UK"
+                  ],
+                  "description": "País de la clínica, derivado del registro de clínicas (nunca enviado por el cliente)."
+                },
+                "region": {
+                  "type": "string",
+                  "enum": [
+                    "TX",
+                    "FL",
+                    "GA",
+                    "LND",
+                    "MAN"
+                  ],
+                  "description": "Estado (US) o ciudad (UK) de la clínica, derivado del registro."
+                },
+                "product_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del producto (`medical_supply.id`)."
+                },
+                "product_category": {
+                  "type": "string",
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment"
+                  ],
+                  "description": "Categoría del BRIEFING (mapeo desde la categoría del modelo, sección 4.3)."
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Stock de ese producto en la clínica que está por caducar."
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "box",
+                    "unit",
+                    "pack",
+                    "vial"
+                  ],
+                  "description": "Unidad del producto."
+                },
+                "expiry_date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "`medical_supply.expiry_date` (YYYY-MM-DD)."
+                },
+                "days_to_expiry": {
+                  "type": "integer",
+                  "description": "Días hasta caducar; negativo si ya caducó."
+                },
+                "expiry_bucket": {
+                  "type": "string",
+                  "enum": [
+                    "d30",
+                    "d14",
+                    "d7",
+                    "expired"
+                  ],
+                  "description": "Tramo alcanzado."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "mandatory",
+        "emitter": "Scheduler · job diario `expiry_scan` (06:00 hora local de cada país)",
+        "source": "scheduler",
+        "actorType": "system",
+        "hypothesis": "qué insumos están por caducar antes de convertirse en merma o en un riesgo de compliance",
+        "decision": "priorizar el uso o la retirada controlada de ese lote antes de que caduque",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "El horizonte es de 30 días y la fecha de caducidad no cambia durante el día: un escaneo diario detecta todo a tiempo. Streaming no adelantaría ninguna decisión.",
+        "pii": "Sin PHI.",
+        "throttle": "Una vez por (producto, clínica, tramo). Si el job se re-ejecuta el mismo día no duplica (clave de idempotencia `product_id+clinic_id+expiry_bucket+expiry_date`).",
+        "allowlist": [
+          "clinic_id",
+          "country",
+          "region",
+          "product_id",
+          "product_category",
+          "quantity",
+          "unit",
+          "expiry_date",
+          "days_to_expiry",
+          "expiry_bucket"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "ba8228a9-a911-454f-a469-6b3d27546245",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": null,
+          "userId": null,
+          "actorType": "system",
+          "event_type": "supply_expiry_flagged",
+          "schemaVersion": "1.0.0",
+          "requestId": "c02690cc-1da3-43ff-a1ea-f160cb8764bf",
+          "source": "scheduler",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "clinic_id": 11,
+            "country": "UK",
+            "region": "MAN",
+            "product_id": 3,
+            "product_category": "medication",
+            "quantity": 14,
+            "unit": "vial",
+            "expiry_date": "2026-12-18",
+            "days_to_expiry": 28,
+            "expiry_bucket": "d30"
+          }
+        }
+      ]
+    },
+    "outbound_order_rejected": {
+      "title": "outbound_order_rejected",
+      "description": "Se emite cuando: Se intenta registrar un consumo mayor que el stock disponible y la API responde 400 sin escribir.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "outbound_order_rejected"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "clinic_id",
+                "country",
+                "product_id",
+                "product_category",
+                "quantity",
+                "available_stock",
+                "reason"
+              ],
+              "properties": {
+                "clinic_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Clínica (1–12) según el registro de clínicas (sección 4.4)."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "US",
+                    "UK"
+                  ],
+                  "description": "País de la clínica, derivado del registro de clínicas (nunca enviado por el cliente)."
+                },
+                "product_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del producto (`medical_supply.id`)."
+                },
+                "product_category": {
+                  "type": "string",
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment"
+                  ],
+                  "description": "Categoría del BRIEFING (mapeo desde la categoría del modelo, sección 4.3)."
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Cantidad que se intentó consumir."
+                },
+                "available_stock": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Stock disponible en ese momento."
+                },
+                "department": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "primary_care",
+                    "specialty_care",
+                    "chronic_care",
+                    "preventive_care",
+                    "womens_health",
+                    "paediatric_care",
+                    "mental_health",
+                    "clinic_operations",
+                    null
+                  ],
+                  "description": "Área clínica que consumió el insumo. NUNCA un identificador de paciente."
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "insufficient_stock",
+                    "product_not_found"
+                  ],
+                  "description": "Motivo del rechazo."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "opportunity",
+        "emitter": "API · `POST /inventory/orders/outbound` (rama del 400 por stock insuficiente)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si las clínicas consumen insumos que el sistema cree que no tienen, es decir, si hay recepciones que no se registran",
+        "decision": "auditar la disciplina de registro de entradas en la clínica afectada (y corregir el stock con un pedido de entrada real)",
+        "delivery": "batch",
+        "cadence": "cada hora",
+        "deliveryJustification": "Indica un problema de proceso, que se corrige con formación/auditoría en días. La parte urgente (falta de stock) ya está cubierta por `stock_depleted`.",
+        "pii": "Sin PHI.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "clinic_id",
+          "country",
+          "product_id",
+          "product_category",
+          "quantity",
+          "available_stock",
+          "department",
+          "reason"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "10c42ac1-6f41-47f7-aa54-96b9c0cd68bb",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "e87f03f5-ec1b-4aa3-accb-654a7c93611e",
+          "userId": "396f00a1-850c-4381-a56f-bad15dcbfaf2",
+          "actorType": "user",
+          "event_type": "outbound_order_rejected",
+          "schemaVersion": "1.0.0",
+          "requestId": "8a61e1c4-6c43-492e-a63c-6d96aaf932f3",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "clinic_id": 1,
+            "country": "US",
+            "product_id": 12,
+            "product_category": "ppe",
+            "quantity": 30,
+            "available_stock": 8,
+            "department": "primary_care",
+            "reason": "insufficient_stock"
+          }
+        }
+      ]
+    },
+    "inventory_order_validation_failed": {
+      "title": "inventory_order_validation_failed",
+      "description": "Se emite cuando: Un pedido de entrada o salida falla la validación de Pydantic (422).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "inventory_order_validation_failed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "order_type",
+                "product_id",
+                "clinic_id",
+                "field_names",
+                "error_codes"
+              ],
+              "properties": {
+                "order_type": {
+                  "type": "string",
+                  "enum": [
+                    "inbound",
+                    "outbound"
+                  ],
+                  "description": "Tipo de pedido."
+                },
+                "product_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "description": "`supply_id` del body si es un entero válido; si no, null."
+                },
+                "clinic_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "`clinic_id` del body si es válido; si no, null."
+                },
+                "field_names": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z_]{1,40}$"
+                  },
+                  "description": "Nombres de campo (claves del formulario). NUNCA sus valores."
+                },
+                "error_codes": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z_]{1,40}$"
+                  },
+                  "description": "Tipo de error por campo (`missing`, `greater_than`, `string_too_long`…), mismo orden que `field_names`."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "opportunity",
+        "emitter": "API · handler de `RequestValidationError` cuando la ruta es `/inventory/orders/*`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "qué productos y qué campos acumulan más errores de validación al registrar pedidos",
+        "decision": "mejorar el formulario (valores por defecto, selects en vez de texto, ayudas) donde más se equivoca el personal",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Es una decisión de diseño de UI que se toma por sprint, no un incidente.",
+        "pii": "Solo se envían nombres de campo y tipo de error, nunca los valores escritos (el handler actual ya descarta `input`).",
+        "throttle": "Ninguno (lo limita el propio usuario).",
+        "allowlist": [
+          "order_type",
+          "product_id",
+          "clinic_id",
+          "field_names",
+          "error_codes"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "d2741f22-c7c7-47c0-ace6-7ce01d78f42d",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "81d755a7-d173-4ddb-a302-ef0d929beacd",
+          "userId": "5e80721a-4970-4929-aee8-482f2cfb1b7e",
+          "actorType": "user",
+          "event_type": "inventory_order_validation_failed",
+          "schemaVersion": "1.0.0",
+          "requestId": "e4fd2037-b393-4c65-a372-28e9dcffdcd4",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "order_type": "outbound",
+            "product_id": 12,
+            "clinic_id": null,
+            "field_names": [
+              "clinic_id",
+              "quantity"
+            ],
+            "error_codes": [
+              "less_than_equal",
+              "greater_than"
+            ]
+          }
+        }
+      ]
+    },
+    "stock_depleted": {
+      "title": "stock_depleted",
+      "description": "Se emite cuando: Tras un consumo, el stock del producto en esa clínica llega exactamente a 0.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "stock_depleted"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "clinic_id",
+                "country",
+                "region",
+                "product_id",
+                "product_category",
+                "is_critical",
+                "triggering_order_id"
+              ],
+              "properties": {
+                "clinic_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Clínica (1–12) según el registro de clínicas (sección 4.4)."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "US",
+                    "UK"
+                  ],
+                  "description": "País de la clínica, derivado del registro de clínicas (nunca enviado por el cliente)."
+                },
+                "region": {
+                  "type": "string",
+                  "enum": [
+                    "TX",
+                    "FL",
+                    "GA",
+                    "LND",
+                    "MAN"
+                  ],
+                  "description": "Estado (US) o ciudad (UK) de la clínica, derivado del registro."
+                },
+                "product_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del producto (`medical_supply.id`)."
+                },
+                "product_category": {
+                  "type": "string",
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment"
+                  ],
+                  "description": "Categoría del BRIEFING (mapeo desde la categoría del modelo, sección 4.3)."
+                },
+                "is_critical": {
+                  "type": "boolean",
+                  "description": "true si medication o ppe."
+                },
+                "triggering_order_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del pedido en su tabla (`supply_delivery.id` / `supply_consumption.id`)."
+                },
+                "department": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "primary_care",
+                    "specialty_care",
+                    "chronic_care",
+                    "preventive_care",
+                    "womens_health",
+                    "paediatric_care",
+                    "mental_health",
+                    "clinic_operations",
+                    null
+                  ],
+                  "description": "Área clínica que consumió el insumo. NUNCA un identificador de paciente."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "opportunity",
+        "emitter": "API · misma transacción que `POST /inventory/orders/outbound`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "cuántas veces una clínica se queda sin un insumo (no solo por debajo del mínimo)",
+        "decision": "ordenar una transferencia de emergencia desde la clínica más cercana con stock y revisar el `min_stock` de ese producto",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Stock 0 de un insumo crítico significa que la próxima consulta no tiene material. Es el caso más urgente del inventario.",
+        "pii": "Sin PHI.",
+        "throttle": "Debounce por estado: una vez al llegar a 0; se rearma cuando entra stock.",
+        "allowlist": [
+          "clinic_id",
+          "country",
+          "region",
+          "product_id",
+          "product_category",
+          "is_critical",
+          "triggering_order_id",
+          "department"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "42d12b5b-0071-4941-ab11-5ea1a37314b3",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "9349dad7-5e22-4920-a3cc-abf4a5faa59f",
+          "userId": "171bc13c-1144-4862-a67e-c66e003f5dc7",
+          "actorType": "user",
+          "event_type": "stock_depleted",
+          "schemaVersion": "1.0.0",
+          "requestId": "362d40ea-9b93-41a3-a7ec-5a0e2a4d5703",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "clinic_id": 3,
+            "country": "US",
+            "region": "TX",
+            "product_id": 9,
+            "product_category": "medication",
+            "is_critical": true,
+            "triggering_order_id": 1203,
+            "department": "chronic_care"
+          }
+        }
+      ]
+    },
+    "stock_threshold_recovered": {
+      "title": "stock_threshold_recovered",
+      "description": "Se emite cuando: Tras una entrada, el stock de un (producto, clínica) que estaba en alerta vuelve a `>= min_stock`.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "stock_threshold_recovered"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "clinic_id",
+                "country",
+                "product_id",
+                "product_category",
+                "quantity",
+                "min_stock",
+                "minutes_below_threshold",
+                "triggering_order_id",
+                "supplier_id"
+              ],
+              "properties": {
+                "clinic_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Clínica (1–12) según el registro de clínicas (sección 4.4)."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "US",
+                    "UK"
+                  ],
+                  "description": "País de la clínica, derivado del registro de clínicas (nunca enviado por el cliente)."
+                },
+                "product_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del producto (`medical_supply.id`)."
+                },
+                "product_category": {
+                  "type": "string",
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment"
+                  ],
+                  "description": "Categoría del BRIEFING (mapeo desde la categoría del modelo, sección 4.3)."
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Stock tras la entrada."
+                },
+                "min_stock": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Mínimo configurado."
+                },
+                "minutes_below_threshold": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Minutos desde el `stock_threshold_triggered` correspondiente."
+                },
+                "triggering_order_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "`supply_delivery.id` que repuso el stock."
+                },
+                "supplier_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "description": "Proveedor de la entrada si está en el directorio."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "opportunity",
+        "emitter": "API · misma transacción que `POST /inventory/orders/inbound`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "cuánto tarda cada clínica/proveedor en reponer un insumo desde que salta la alerta",
+        "decision": "exigir SLA de entrega a los proveedores lentos o cambiar de proveedor para insumos críticos",
+        "delivery": "batch",
+        "cadence": "cada hora",
+        "deliveryJustification": "Mide tiempos de reposición, que se revisan en la reunión semanal con proveedores.",
+        "pii": "Sin PHI.",
+        "throttle": "Una vez por alerta abierta (cierra el par trigger/recovered).",
+        "allowlist": [
+          "clinic_id",
+          "country",
+          "product_id",
+          "product_category",
+          "quantity",
+          "min_stock",
+          "minutes_below_threshold",
+          "triggering_order_id",
+          "supplier_id"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "d0b45f25-b939-4534-a0b3-598e4915020d",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "d59e271d-6e86-4506-aa74-b84a26747b2d",
+          "userId": "3f35359d-0e59-4f86-af09-8e32a3839f2b",
+          "actorType": "user",
+          "event_type": "stock_threshold_recovered",
+          "schemaVersion": "1.0.0",
+          "requestId": "b18487a3-ba91-42e2-ae4b-c13ef21be4ad",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "clinic_id": 4,
+            "country": "US",
+            "product_id": 12,
+            "product_category": "ppe",
+            "quantity": 48,
+            "min_stock": 20,
+            "minutes_below_threshold": 1260,
+            "triggering_order_id": 431,
+            "supplier_id": 7
+          }
+        }
+      ]
+    },
+    "product_created": {
+      "title": "product_created",
+      "description": "Se emite cuando: Se da de alta un producto nuevo en el catálogo.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "product_created"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "product_id",
+                "product_category",
+                "product_subcategory",
+                "unit",
+                "country",
+                "has_expiry_date",
+                "min_stock",
+                "actor_role"
+              ],
+              "properties": {
+                "product_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del producto (`medical_supply.id`)."
+                },
+                "product_category": {
+                  "type": "string",
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment"
+                  ],
+                  "description": "Categoría del BRIEFING (mapeo desde la categoría del modelo, sección 4.3)."
+                },
+                "product_subcategory": {
+                  "type": "string",
+                  "enum": [
+                    "ppe",
+                    "wound_care",
+                    "diagnostics",
+                    "medications",
+                    "consumables"
+                  ],
+                  "description": "Categoría original del modelo (`medical_supply.category`), para no perder detalle."
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "box",
+                    "unit",
+                    "pack",
+                    "vial"
+                  ],
+                  "description": "Unidad del producto."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "US",
+                    "UK"
+                  ],
+                  "description": "País de la clínica, derivado del registro de clínicas (nunca enviado por el cliente)."
+                },
+                "has_expiry_date": {
+                  "type": "boolean",
+                  "description": "true si se cargó `expiry_date`."
+                },
+                "min_stock": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "description": "Mínimo configurado al crear (null si no se configuró)."
+                },
+                "actor_role": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "user",
+                    null
+                  ],
+                  "description": "Rol del usuario autenticado al momento del evento."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "opportunity",
+        "emitter": "API · `POST /inventory/products` (201)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si el catálogo crece de forma desordenada (mismos insumos con SKUs distintos por país o clínica)",
+        "decision": "definir un catálogo maestro y quién puede dar de alta productos",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Gobierno de catálogo: revisión mensual.",
+        "pii": "Sin PHI. El nombre del producto no se envía (texto libre); se usa `product_id`.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "product_id",
+          "product_category",
+          "product_subcategory",
+          "unit",
+          "country",
+          "has_expiry_date",
+          "min_stock",
+          "actor_role"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "e32e25cc-aa85-497d-acf8-087298b9126e",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "ef7563b2-12c8-4e4f-aa24-bc046404ade3",
+          "userId": "957bb312-0184-411c-a5a3-62019a821bed",
+          "actorType": "user",
+          "event_type": "product_created",
+          "schemaVersion": "1.0.0",
+          "requestId": "c0cfbc05-9655-49e5-a4f6-3a3e8bf091d1",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "product_id": 31,
+            "product_category": "medication",
+            "product_subcategory": "medications",
+            "unit": "vial",
+            "country": "UK",
+            "has_expiry_date": true,
+            "min_stock": 10,
+            "actor_role": "manager"
+          }
+        }
+      ]
+    },
+    "product_creation_rejected": {
+      "title": "product_creation_rejected",
+      "description": "Se emite cuando: El alta de un producto se rechaza por SKU duplicado o por validación.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "product_creation_rejected"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reason",
+                "product_category",
+                "country"
+              ],
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "duplicate_sku",
+                    "validation_error"
+                  ],
+                  "description": "Motivo."
+                },
+                "product_category": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "medication",
+                    "ppe",
+                    "consumable",
+                    "equipment",
+                    null
+                  ],
+                  "description": "Categoría del BRIEFING; null si el producto no existe."
+                },
+                "country": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "US",
+                    "UK",
+                    null
+                  ],
+                  "description": "País de la clínica; null si clinic_id es null."
+                },
+                "field_names": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z_]{1,40}$"
+                  },
+                  "description": "Nombres de campo (claves del formulario). NUNCA sus valores."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "inventory",
+        "classification": "opportunity",
+        "emitter": "API · `POST /inventory/products` (400 SKU duplicado / 422)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si el personal intenta crear productos que ya existen porque no los encuentra en el catálogo",
+        "decision": "añadir búsqueda por SKU/nombre antes del alta y deduplicar el catálogo",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Mejora de UX/catálogo, sin urgencia operativa.",
+        "pii": "No se envía el SKU ni el nombre tecleado; solo el motivo y la categoría.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "reason",
+          "product_category",
+          "country",
+          "field_names"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "081f1a2c-92c6-4c6b-a414-eb3df8aa88bf",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "3732c70a-ec56-4f99-ab0c-5a52ebfa0e90",
+          "userId": "d1edf97e-abc5-4697-a8c5-244d75dcb264",
+          "actorType": "user",
+          "event_type": "product_creation_rejected",
+          "schemaVersion": "1.0.0",
+          "requestId": "037e4f3d-b055-4d3d-a3ec-c6fcce6948b3",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "reason": "duplicate_sku",
+            "product_category": "ppe",
+            "country": "US"
+          }
+        }
+      ]
+    },
+    "login_succeeded": {
+      "title": "login_succeeded",
+      "description": "Se emite cuando: Un usuario inicia sesión correctamente.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "login_succeeded"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "actor_role",
+                "user_agent_family",
+                "device_type",
+                "failed_attempts_before"
+              ],
+              "properties": {
+                "actor_role": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "user",
+                    null
+                  ],
+                  "description": "Rol del usuario autenticado al momento del evento."
+                },
+                "user_agent_family": {
+                  "type": "string",
+                  "maxLength": 40,
+                  "pattern": "^[A-Za-z ]{1,30} [0-9]{1,4}$",
+                  "description": "Navegador y versión mayor (`Chrome 131`), nunca el user-agent completo."
+                },
+                "device_type": {
+                  "type": "string",
+                  "enum": [
+                    "desktop",
+                    "tablet",
+                    "mobile"
+                  ],
+                  "description": "Tipo de dispositivo."
+                },
+                "failed_attempts_before": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Intentos fallidos de esa cuenta en los 15 min previos."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · `POST /auth/login` (200)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "cuánto personal usa de verdad el backoffice cada día, por rol",
+        "decision": "decidir dónde reforzar la adopción (formación) antes de apagar los registros en papel/hojas de cálculo",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Métrica de adopción (usuarios activos diarios/semanales): se lee en reportes semanales.",
+        "pii": "`userId` seudónimo. Sin email. `user_agent_family` reducido a familia+versión mayor.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "actor_role",
+          "user_agent_family",
+          "device_type",
+          "failed_attempts_before"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "1fa29ebd-2523-4925-ac45-82673f89f128",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "877830d0-fe37-4519-a809-de8deacc3f44",
+          "userId": "18506e6d-9ac8-4074-ad1d-c837745fedfa",
+          "actorType": "user",
+          "event_type": "login_succeeded",
+          "schemaVersion": "1.0.0",
+          "requestId": "4d40e327-8ba8-4a2b-a4b4-13aada58a6da",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "actor_role": "user",
+            "user_agent_family": "Chrome 131",
+            "device_type": "desktop",
+            "failed_attempts_before": 1
+          }
+        }
+      ]
+    },
+    "login_failed": {
+      "title": "login_failed",
+      "description": "Se emite cuando: Un intento de inicio de sesión falla por credenciales incorrectas, usuario inexistente o usuario inactivo.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "login_failed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "account_ref",
+                "ip_ref",
+                "failure_reason",
+                "attempt_number"
+              ],
+              "properties": {
+                "account_ref": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "HMAC-SHA256(email normalizado, TELEMETRY_HMAC_KEY) truncado a 16 hex. Permite contar intentos por cuenta sin guardar el email."
+                },
+                "ip_ref": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "HMAC-SHA256(IP, clave rotada mensualmente) truncado a 16 hex. Nunca la IP real."
+                },
+                "failure_reason": {
+                  "type": "string",
+                  "enum": [
+                    "invalid_credentials",
+                    "unknown_account",
+                    "inactive_user"
+                  ],
+                  "description": "Motivo interno (el usuario solo ve un mensaje genérico)."
+                },
+                "attempt_number": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Número de intento fallido de esa cuenta en ventana de 15 min."
+                },
+                "suppressed_count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Eventos agregados por throttling desde el último emitido."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · `POST /auth/login` (401)",
+        "source": "api",
+        "actorType": "anonymous",
+        "hypothesis": "cuántos intentos fallidos hay al día y si alguno es un ataque de fuerza bruta o credential stuffing",
+        "decision": "bloquear temporalmente la cuenta/IP, forzar reset de contraseña o activar MFA",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Un ataque de fuerza bruta se frena mientras ocurre. En batch, el bloqueo llegaría cuando la cuenta ya está comprometida.",
+        "pii": "El email NUNCA se envía: se usa `account_ref` (HMAC con clave secreta, no reversible sin la clave). La IP se reduce a `ip_ref`. `userId` = null (no hay sesión).",
+        "throttle": "Hasta 10 eventos/min por `ip_ref`; por encima se agregan y el siguiente evento lleva `suppressed_count` (ver sección 7.2).",
+        "allowlist": [
+          "account_ref",
+          "ip_ref",
+          "failure_reason",
+          "attempt_number",
+          "suppressed_count"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "e3549981-d2da-4190-a789-7b6a1d2a88eb",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "632ae6b2-d769-44b6-ad75-94834bfb9254",
+          "userId": null,
+          "actorType": "anonymous",
+          "event_type": "login_failed",
+          "schemaVersion": "1.0.0",
+          "requestId": "283d9edd-d9bf-4595-ab8f-0e01962eb211",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "account_ref": "9f2c41aa07b3e6d1",
+            "ip_ref": "41d07ce2a9b8f310",
+            "failure_reason": "invalid_credentials",
+            "attempt_number": 3
+          }
+        }
+      ]
+    },
+    "session_expired": {
+      "title": "session_expired",
+      "description": "Se emite cuando: Una llamada autenticada recibe 401 porque el JWT expiró y el backoffice expulsa al usuario al login.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "session_expired"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "section",
+                "session_age_minutes",
+                "had_unsaved_form"
+              ],
+              "properties": {
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "suppliers",
+                    "incidents",
+                    "incidents_new",
+                    "incidents_summary",
+                    "inventory_products",
+                    "inventory_orders",
+                    "inventory_inbound",
+                    "inventory_outbound",
+                    "account_profile",
+                    "account_password",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "not_found"
+                  ],
+                  "description": "Sección del backoffice (enum cerrado, una por página de `uis/backoffice/app`)."
+                },
+                "session_age_minutes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Minutos desde el login."
+                },
+                "had_unsaved_form": {
+                  "type": "boolean",
+                  "description": "true si había un formulario con campos tocados sin enviar."
+                },
+                "form_id": {
+                  "type": "string",
+                  "enum": [
+                    "inbound_order",
+                    "outbound_order",
+                    "product_create",
+                    "supplier_create",
+                    "incident_create",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "change_password",
+                    "profile_edit"
+                  ],
+                  "description": "Formulario del backoffice."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "Backoffice · `lib/api.ts` al recibir 401 con token presente",
+        "source": "backoffice",
+        "actorType": "user",
+        "hypothesis": "si la expiración de 60 min (`ACCESS_TOKEN_EXPIRE_MINUTES`) hace perder trabajo a mitad de un formulario",
+        "decision": "ajustar la duración del token o implementar refresh tokens",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Decisión de configuración que se toma con datos de semanas.",
+        "pii": "Sin datos personales más allá del `userId` seudónimo.",
+        "throttle": "1 por sesión (la sesión termina con el evento).",
+        "allowlist": [
+          "section",
+          "session_age_minutes",
+          "had_unsaved_form",
+          "form_id"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "9928bbb2-c6c5-4a14-a366-4e086d012297",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "66e32061-ee13-4a5c-a54e-9c925db83789",
+          "userId": "82c46385-f33b-44e5-aeae-ac0ab558de4b",
+          "actorType": "user",
+          "event_type": "session_expired",
+          "schemaVersion": "1.0.0",
+          "requestId": "751ed822-8e2a-4457-a0f5-0955ab284da2",
+          "source": "backoffice",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "section": "inventory_outbound",
+            "session_age_minutes": 61,
+            "had_unsaved_form": true,
+            "form_id": "outbound_order"
+          }
+        }
+      ]
+    },
+    "password_reset_requested": {
+      "title": "password_reset_requested",
+      "description": "Se emite cuando: Alguien pide un enlace de recuperación de contraseña.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "password_reset_requested"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "account_ref",
+                "account_exists",
+                "email_dispatch"
+              ],
+              "properties": {
+                "account_ref": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "HMAC-SHA256(email normalizado, TELEMETRY_HMAC_KEY) truncado a 16 hex. Permite contar intentos por cuenta sin guardar el email."
+                },
+                "account_exists": {
+                  "type": "boolean",
+                  "description": "Si el email corresponde a un usuario."
+                },
+                "email_dispatch": {
+                  "type": "string",
+                  "enum": [
+                    "sent",
+                    "failed",
+                    "skipped"
+                  ],
+                  "description": "Resultado del envío (skipped si la cuenta no existe)."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · `POST /auth/forgot-password`",
+        "source": "api",
+        "actorType": "anonymous",
+        "hypothesis": "cuánta gente olvida su contraseña y si el correo de recuperación llega",
+        "decision": "valorar SSO con el directorio corporativo y detectar caídas del proveedor de email",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Volumen bajo, decisión de producto. Las caídas de email tienen su propio evento en stream.",
+        "pii": "Sin email: `account_ref`. La API sigue respondiendo lo mismo exista o no la cuenta; `account_exists` solo vive en telemetría interna.",
+        "throttle": "Ninguno (la API ya limita enlaces por cuenta).",
+        "allowlist": [
+          "account_ref",
+          "account_exists",
+          "email_dispatch"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "5b2e82fb-15ae-462f-a4af-4ca61da00b37",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "0ab96424-372b-4652-a73d-dc4198214999",
+          "userId": null,
+          "actorType": "anonymous",
+          "event_type": "password_reset_requested",
+          "schemaVersion": "1.0.0",
+          "requestId": "198e2297-20de-435f-a662-ff2ec510ab50",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "account_ref": "9f2c41aa07b3e6d1",
+            "account_exists": true,
+            "email_dispatch": "sent"
+          }
+        }
+      ]
+    },
+    "password_reset_completed": {
+      "title": "password_reset_completed",
+      "description": "Se emite cuando: Un usuario cambia su contraseña con un enlace válido.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "password_reset_completed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "minutes_since_request"
+              ],
+              "properties": {
+                "minutes_since_request": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Minutos entre la solicitud y el cambio."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · `POST /auth/reset-password` (200)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "qué porcentaje de las solicitudes de recuperación termina en contraseña nueva",
+        "decision": "alargar/acortar `RESET_TOKEN_EXPIRE_MINUTES` o simplificar el flujo",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Embudo de producto.",
+        "pii": "`userId` seudónimo.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "minutes_since_request"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "af5cfa04-eddb-4991-a443-7cd53047ad80",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "302a2600-f251-4556-a486-bfa59567c179",
+          "userId": "894e4cda-f181-4151-ad37-5579a7bf79c0",
+          "actorType": "user",
+          "event_type": "password_reset_completed",
+          "schemaVersion": "1.0.0",
+          "requestId": "36a8132e-275b-45b9-ac3a-6edfe4bebc92",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "minutes_since_request": 7
+          }
+        }
+      ]
+    },
+    "password_reset_failed": {
+      "title": "password_reset_failed",
+      "description": "Se emite cuando: Un enlace de recuperación se rechaza.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "password_reset_failed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reason"
+              ],
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "token_expired",
+                    "token_invalid",
+                    "token_used",
+                    "weak_password"
+                  ],
+                  "description": "Motivo."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · `POST /auth/reset-password` (400)",
+        "source": "api",
+        "actorType": "anonymous",
+        "hypothesis": "si los enlaces caducan antes de que el personal los use (turnos largos, correo leído tarde)",
+        "decision": "ajustar la caducidad del enlace",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Decisión de configuración.",
+        "pii": "Ninguno: no se envía el token.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "reason"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "15ec601c-461b-48cf-a010-8ea0a9dc1130",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "9d1a2380-a235-4a11-a076-65d525d69433",
+          "userId": null,
+          "actorType": "anonymous",
+          "event_type": "password_reset_failed",
+          "schemaVersion": "1.0.0",
+          "requestId": "f4444937-b453-4178-aeff-d9778d42da9c",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "reason": "token_expired"
+          }
+        }
+      ]
+    },
+    "permission_denied": {
+      "title": "permission_denied",
+      "description": "Se emite cuando: Un usuario autenticado intenta una acción que su rol no permite.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "permission_denied"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "route_template",
+                "http_method",
+                "actor_role",
+                "required_role"
+              ],
+              "properties": {
+                "route_template": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9_\\-/\\[\\]{}]*$",
+                  "maxLength": 120,
+                  "description": "Plantilla de ruta (`/inventory/products/{supply_id}`), nunca la URL real con IDs ni query string."
+                },
+                "http_method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ],
+                  "description": "Método HTTP."
+                },
+                "actor_role": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "user",
+                    null
+                  ],
+                  "description": "Rol del usuario autenticado al momento del evento."
+                },
+                "required_role": {
+                  "type": "string",
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "owner"
+                  ],
+                  "description": "Rol o condición que hacía falta."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · cualquier `HTTPException(403)` (p. ej. `GET /users` sin ser admin)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si los roles están mal asignados (gente que necesita algo y no puede) o si alguien está sondeando permisos",
+        "decision": "ajustar el modelo de roles o investigar la cuenta",
+        "delivery": "batch",
+        "cadence": "cada hora",
+        "deliveryJustification": "Casi siempre es un rol mal asignado (se arregla en horas). El caso grave del inventario ya va por stream en `direct_stock_edit_rejected`.",
+        "pii": "`userId` seudónimo; nunca el ID del recurso ajeno que se intentó ver.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "route_template",
+          "http_method",
+          "actor_role",
+          "required_role"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "1a113eb0-5065-40e9-a368-85d2dca114bb",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "a3adfb7b-a37f-44ee-a45a-7ffcef2a6336",
+          "userId": "ec2b3408-1ae3-4fdb-a338-b41d07e6d6d0",
+          "actorType": "user",
+          "event_type": "permission_denied",
+          "schemaVersion": "1.0.0",
+          "requestId": "4dbcbdbb-769f-4d93-a4c7-b36a82c960a0",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "route_template": "/users",
+            "http_method": "GET",
+            "actor_role": "user",
+            "required_role": "admin"
+          }
+        }
+      ]
+    },
+    "user_role_changed": {
+      "title": "user_role_changed",
+      "description": "Se emite cuando: Un admin cambia el rol de un usuario.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "user_role_changed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target_user_ref",
+                "previous_role",
+                "new_role"
+              ],
+              "properties": {
+                "target_user_ref": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID del usuario afectado."
+                },
+                "previous_role": {
+                  "type": "string",
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "user"
+                  ],
+                  "description": "Rol anterior."
+                },
+                "new_role": {
+                  "type": "string",
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "user"
+                  ],
+                  "description": "Rol nuevo."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · `PUT /users/{user_id}` cuando cambia `role`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "quién gana privilegios y cuándo, para detectar escaladas no autorizadas",
+        "decision": "revisión de accesos privilegiados (HIPAA §164.308 y UK GDPR art. 32)",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Una escalada a admin no autorizada es un incidente de seguridad: compliance debe enterarse al momento.",
+        "pii": "`userId` = admin que hace el cambio; `target_user_ref` = UUID seudónimo del afectado. Sin emails.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "target_user_ref",
+          "previous_role",
+          "new_role"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "94056bcb-4f68-44e7-ae44-0863f2de2c23",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "32008b70-17e9-42f3-abd2-8a7451ca45fc",
+          "userId": "64a3872d-3021-4a01-ac56-8c4905b772d1",
+          "actorType": "user",
+          "event_type": "user_role_changed",
+          "schemaVersion": "1.0.0",
+          "requestId": "c86f9ff9-62f1-40c0-afdd-91cbcbe3f3e3",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "target_user_ref": "3b1f8a52-7c4e-4f0e-9a51-2d6b8f0c1e77",
+            "previous_role": "user",
+            "new_role": "admin"
+          }
+        }
+      ]
+    },
+    "user_registered": {
+      "title": "user_registered",
+      "description": "Se emite cuando: Se crea una cuenta nueva.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "user_registered"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "actor_role",
+                "registration_channel"
+              ],
+              "properties": {
+                "actor_role": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "user",
+                    null
+                  ],
+                  "description": "Rol asignado a la cuenta nueva."
+                },
+                "registration_channel": {
+                  "type": "string",
+                  "enum": [
+                    "self_service",
+                    "admin_created"
+                  ],
+                  "description": "Cómo se creó."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · `POST /users` (201)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "a qué ritmo se incorpora personal al sistema frente a las altas de RR. HH.",
+        "decision": "detectar cuentas sin dueño o personal que aún no tiene acceso (onboarding de Diane Foster)",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Conciliación semanal con RR. HH.",
+        "pii": "`userId` = nueva cuenta (seudónimo). Sin email.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "actor_role",
+          "registration_channel"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "f10f6b7f-40e2-44a6-a675-8ba41a9d0d6f",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "264377b4-99b6-4f18-a481-f65598e59bf7",
+          "userId": "5863f00a-8651-400b-a757-6023b43128da",
+          "actorType": "user",
+          "event_type": "user_registered",
+          "schemaVersion": "1.0.0",
+          "requestId": "8a2a27ba-5453-43e0-a4bf-63ef1bc4968a",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "actor_role": "user",
+            "registration_channel": "self_service"
+          }
+        }
+      ]
+    },
+    "user_deleted": {
+      "title": "user_deleted",
+      "description": "Se emite cuando: Se elimina una cuenta.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "user_deleted"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target_user_ref",
+                "self_deleted"
+              ],
+              "properties": {
+                "target_user_ref": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID de la cuenta eliminada."
+                },
+                "self_deleted": {
+                  "type": "boolean",
+                  "description": "true si el usuario se eliminó a sí mismo."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "authentication",
+        "classification": "opportunity",
+        "emitter": "API · `DELETE /users/{user_id}`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si las bajas de personal se reflejan a tiempo en los accesos",
+        "decision": "automatizar la baja de accesos desde RR. HH. si el desfase es grande",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Auditoría periódica de accesos.",
+        "pii": "`target_user_ref` seudónimo.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "target_user_ref",
+          "self_deleted"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "b08a1d67-07fb-40f1-a6c2-2c1395d74cf9",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "263cdbb6-0eb2-4c70-aecb-02bc3ce2f0f8",
+          "userId": "0b9fc50c-d18f-403b-afec-1152b0e4bd83",
+          "actorType": "user",
+          "event_type": "user_deleted",
+          "schemaVersion": "1.0.0",
+          "requestId": "af1cb47a-bc39-45d7-a36b-7ee2c5a3a667",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "target_user_ref": "3b1f8a52-7c4e-4f0e-9a51-2d6b8f0c1e77",
+            "self_deleted": false
+          }
+        }
+      ]
+    },
+    "supplier_status_changed": {
+      "title": "supplier_status_changed",
+      "description": "Se emite cuando: Un proveedor pasa de `active` a `suspended` o al revés.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "supplier_status_changed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "supplier_id",
+                "previous_status",
+                "new_status",
+                "country",
+                "compliance_agreement"
+              ],
+              "properties": {
+                "supplier_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del proveedor en el directorio (TinyDB)."
+                },
+                "previous_status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "suspended"
+                  ],
+                  "description": "Estado anterior."
+                },
+                "new_status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "suspended"
+                  ],
+                  "description": "Estado nuevo."
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "USA",
+                    "UK"
+                  ],
+                  "description": "País del proveedor (valores del directorio)."
+                },
+                "compliance_agreement": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "BAA",
+                    "DPA",
+                    "both",
+                    null
+                  ],
+                  "description": "Acuerdo de compliance vigente."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "suppliers",
+        "classification": "opportunity",
+        "emitter": "API · `PATCH /suppliers/{supplier_id}/status`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si se siguen registrando entradas de proveedores suspendidos",
+        "decision": "bloquear entradas de proveedores suspendidos o reactivarlos formalmente",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Se cruza con `inbound_order_created` en el reporte diario.",
+        "pii": "Sin datos personales (no se envía `contact_email`).",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "supplier_id",
+          "previous_status",
+          "new_status",
+          "country",
+          "compliance_agreement"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "41908a6d-7633-43fd-ad16-ba6e78bbb6c8",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "5cb1ce2e-cc27-4d16-a5d2-9965430a964b",
+          "userId": "29a9dca5-74ba-463f-aaa0-ebf84db32adf",
+          "actorType": "user",
+          "event_type": "supplier_status_changed",
+          "schemaVersion": "1.0.0",
+          "requestId": "4ac92905-00d2-428c-ad3d-2b9f28e74675",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "supplier_id": 7,
+            "previous_status": "active",
+            "new_status": "suspended",
+            "country": "USA",
+            "compliance_agreement": "BAA"
+          }
+        }
+      ]
+    },
+    "supplier_rate_changed": {
+      "title": "supplier_rate_changed",
+      "description": "Se emite cuando: Cambia la tarifa mensual de un proveedor.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "supplier_rate_changed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "supplier_id",
+                "currency",
+                "change_pct"
+              ],
+              "properties": {
+                "supplier_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del proveedor en el directorio (TinyDB)."
+                },
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "USD",
+                    "GBP"
+                  ],
+                  "description": "Moneda."
+                },
+                "change_pct": {
+                  "type": "number",
+                  "description": "Variación porcentual (`(nueva-anterior)/anterior*100`)."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "suppliers",
+        "classification": "opportunity",
+        "emitter": "API · `PATCH /suppliers/{supplier_id}/rate`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "cuánto suben los proveedores y si la consolidación de compras baja las tarifas",
+        "decision": "renegociar o cambiar de proveedor",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Revisión financiera mensual.",
+        "pii": "Sin datos personales. Solo % de cambio (la tarifa exacta es dato comercial y vive en el directorio).",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "supplier_id",
+          "currency",
+          "change_pct"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "82ff0e93-ab73-4bed-ac3c-d4ed2b15dd62",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "ed08649b-a810-462b-a2de-90709fd7953d",
+          "userId": "fd1d1e2b-e1ed-4c49-a567-a903336719d7",
+          "actorType": "user",
+          "event_type": "supplier_rate_changed",
+          "schemaVersion": "1.0.0",
+          "requestId": "dcbf80b0-d9da-4766-a346-634e03f31dfa",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "supplier_id": 7,
+            "currency": "USD",
+            "change_pct": 4.5
+          }
+        }
+      ]
+    },
+    "supplier_contract_renewal_flagged": {
+      "title": "supplier_contract_renewal_flagged",
+      "description": "Se emite cuando: Un contrato activo entra en los 60, 30 o 7 días previos a `contract_renewal_date`.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "supplier_contract_renewal_flagged"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "supplier_id",
+                "days_to_renewal",
+                "renewal_bucket",
+                "has_compliance_agreement"
+              ],
+              "properties": {
+                "supplier_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del proveedor en el directorio (TinyDB)."
+                },
+                "days_to_renewal": {
+                  "type": "integer",
+                  "description": "Días restantes."
+                },
+                "renewal_bucket": {
+                  "type": "string",
+                  "enum": [
+                    "d60",
+                    "d30",
+                    "d7"
+                  ],
+                  "description": "Tramo."
+                },
+                "has_compliance_agreement": {
+                  "type": "boolean",
+                  "description": "false = proveedor sin BAA/DPA: prioridad para Claire."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "suppliers",
+        "classification": "opportunity",
+        "emitter": "Scheduler · job diario `supplier_renewal_scan`",
+        "source": "scheduler",
+        "actorType": "system",
+        "hypothesis": "qué contratos se renuevan pronto, para negociar antes de que se renueven solos",
+        "decision": "abrir la negociación con datos de volumen comprado (`inbound_order_created`)",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Horizonte de semanas.",
+        "pii": "Sin datos personales.",
+        "throttle": "Una vez por (proveedor, tramo).",
+        "allowlist": [
+          "supplier_id",
+          "days_to_renewal",
+          "renewal_bucket",
+          "has_compliance_agreement"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "4fa79ff4-4e29-4806-af07-a97fecf29a6d",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": null,
+          "userId": null,
+          "actorType": "system",
+          "event_type": "supplier_contract_renewal_flagged",
+          "schemaVersion": "1.0.0",
+          "requestId": "57ffd9e5-7470-4ae7-ab1f-3e594ce74dee",
+          "source": "scheduler",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "supplier_id": 7,
+            "days_to_renewal": 30,
+            "renewal_bucket": "d30",
+            "has_compliance_agreement": true
+          }
+        }
+      ]
+    },
+    "incident_created": {
+      "title": "incident_created",
+      "description": "Se emite cuando: Se registra un incidente operativo.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "incident_created"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "incident_id",
+                "category",
+                "origin",
+                "branch"
+              ],
+              "properties": {
+                "incident_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del incidente."
+                },
+                "category": {
+                  "type": "string",
+                  "maxLength": 40,
+                  "pattern": "^[a-z_]+$",
+                  "description": "Categoría (enum de `incident_rules.CATEGORIES`)."
+                },
+                "origin": {
+                  "type": "string",
+                  "enum": [
+                    "customer",
+                    "branch",
+                    "internal"
+                  ],
+                  "description": "Origen."
+                },
+                "branch": {
+                  "type": "string",
+                  "maxLength": 40,
+                  "pattern": "^[a-z_]+$",
+                  "description": "Sede (clave de `incident_rules.BRANCHES`)."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "operations",
+        "classification": "opportunity",
+        "emitter": "API · `POST /api/incidents` (201)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "qué tipo de incidentes se concentran en qué sede y origen",
+        "decision": "asignar recursos de soporte/operaciones a las sedes con más incidentes",
+        "delivery": "batch",
+        "cadence": "cada hora",
+        "deliveryJustification": "Se gestionan en la propia bandeja de incidentes; la telemetría sirve para tendencias.",
+        "pii": "NO se envían `title` ni `description` (texto libre que podría contener datos de pacientes). Solo enums.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "incident_id",
+          "category",
+          "origin",
+          "branch"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "555c1f4b-7002-4854-af02-aa48ef16a222",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "4192d37a-bf9f-4e02-a326-e6a3c427d700",
+          "userId": "c467e8c3-f402-47fc-ae75-5db5a258ce2c",
+          "actorType": "user",
+          "event_type": "incident_created",
+          "schemaVersion": "1.0.0",
+          "requestId": "4742543d-c23a-4af7-ad20-bd05855438c1",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "incident_id": 95,
+            "category": "scheduling",
+            "origin": "branch",
+            "branch": "miami"
+          }
+        }
+      ]
+    },
+    "incident_status_changed": {
+      "title": "incident_status_changed",
+      "description": "Se emite cuando: Un incidente cambia de estado.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "incident_status_changed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "incident_id",
+                "previous_status",
+                "new_status",
+                "hours_in_previous_status"
+              ],
+              "properties": {
+                "incident_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "ID del incidente."
+                },
+                "previous_status": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "in_progress",
+                    "resolved",
+                    "discarded"
+                  ],
+                  "description": "Estado anterior."
+                },
+                "new_status": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "in_progress",
+                    "resolved",
+                    "discarded"
+                  ],
+                  "description": "Estado nuevo."
+                },
+                "hours_in_previous_status": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Horas en el estado anterior."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "operations",
+        "classification": "opportunity",
+        "emitter": "API · `PATCH /api/incidents/{incident_id}/status`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "cuánto se tarda en resolver cada tipo de incidente",
+        "decision": "fijar SLAs por categoría y detectar cuellos de botella",
+        "delivery": "batch",
+        "cadence": "cada hora",
+        "deliveryJustification": "Tendencias de tiempos de resolución.",
+        "pii": "Solo enums.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "incident_id",
+          "previous_status",
+          "new_status",
+          "hours_in_previous_status"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "63185581-0342-43ef-af7f-f86dfcee1a48",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "3e8361aa-09a9-4118-a015-761aa57b9b63",
+          "userId": "62e49670-f40e-4c33-a2f5-0413fa006a6b",
+          "actorType": "user",
+          "event_type": "incident_status_changed",
+          "schemaVersion": "1.0.0",
+          "requestId": "e0bd8ec7-1b03-406d-a492-3febce4652bd",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "incident_id": 95,
+            "previous_status": "open",
+            "new_status": "in_progress",
+            "hours_in_previous_status": 5.5
+          }
+        }
+      ]
+    },
+    "page_viewed": {
+      "title": "page_viewed",
+      "description": "Se emite cuando: El usuario llega a una página del backoffice.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "page_viewed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "section",
+                "route_template",
+                "referrer_section",
+                "actor_role"
+              ],
+              "properties": {
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "suppliers",
+                    "incidents",
+                    "incidents_new",
+                    "incidents_summary",
+                    "inventory_products",
+                    "inventory_orders",
+                    "inventory_inbound",
+                    "inventory_outbound",
+                    "account_profile",
+                    "account_password",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "not_found"
+                  ],
+                  "description": "Sección del backoffice (enum cerrado, una por página de `uis/backoffice/app`)."
+                },
+                "route_template": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9_\\-/\\[\\]{}]*$",
+                  "maxLength": 120,
+                  "description": "Plantilla de ruta (`/inventory/products/{supply_id}`), nunca la URL real con IDs ni query string."
+                },
+                "referrer_section": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "home",
+                    "suppliers",
+                    "incidents",
+                    "incidents_new",
+                    "incidents_summary",
+                    "inventory_products",
+                    "inventory_orders",
+                    "inventory_inbound",
+                    "inventory_outbound",
+                    "account_profile",
+                    "account_password",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "not_found",
+                    null
+                  ],
+                  "description": "Sección anterior dentro del backoffice; null si es la primera."
+                },
+                "actor_role": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "admin",
+                    "manager",
+                    "user",
+                    null
+                  ],
+                  "description": "Rol del usuario autenticado al momento del evento."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "navigation",
+        "classification": "opportunity",
+        "emitter": "Backoffice · listener de cambio de ruta en `app/(app)/layout.tsx` y páginas públicas",
+        "source": "backoffice",
+        "actorType": "user",
+        "hypothesis": "qué secciones usan más los operadores y cuáles nadie visita",
+        "decision": "priorizar el desarrollo y simplificar la navegación (`Nav.tsx`)",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Decisión de roadmap por sprint.",
+        "pii": "Solo `section` (enum) y `route_template`; nunca la URL real (lleva IDs) ni la query string (el enlace de reset lleva el token).",
+        "throttle": "Dedupe: misma `section` en < 2 s no se re-emite (evita el doble render de React Strict Mode).",
+        "allowlist": [
+          "section",
+          "route_template",
+          "referrer_section",
+          "actor_role"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "de00d584-d09c-4f17-a943-38dec6685913",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "3610513e-cb9a-4b3a-a5ea-89cb3eb86f94",
+          "userId": "bfa6a9a8-b9f9-4161-a7f0-4c21ed557ceb",
+          "actorType": "user",
+          "event_type": "page_viewed",
+          "schemaVersion": "1.0.0",
+          "requestId": "20289d45-d6e6-4dad-a527-33081fb0cd85",
+          "source": "backoffice",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "section": "inventory_orders",
+            "route_template": "/inventory/orders",
+            "referrer_section": "inventory_products",
+            "actor_role": "manager"
+          }
+        }
+      ]
+    },
+    "form_started": {
+      "title": "form_started",
+      "description": "Se emite cuando: El usuario modifica el primer campo de un formulario.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "form_started"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "form_id",
+                "section"
+              ],
+              "properties": {
+                "form_id": {
+                  "type": "string",
+                  "enum": [
+                    "inbound_order",
+                    "outbound_order",
+                    "product_create",
+                    "supplier_create",
+                    "incident_create",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "change_password",
+                    "profile_edit"
+                  ],
+                  "description": "Formulario del backoffice."
+                },
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "suppliers",
+                    "incidents",
+                    "incidents_new",
+                    "incidents_summary",
+                    "inventory_products",
+                    "inventory_orders",
+                    "inventory_inbound",
+                    "inventory_outbound",
+                    "account_profile",
+                    "account_password",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "not_found"
+                  ],
+                  "description": "Sección del backoffice (enum cerrado, una por página de `uis/backoffice/app`)."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "navigation",
+        "classification": "opportunity",
+        "emitter": "Backoffice · primer `onChange` de un formulario",
+        "source": "backoffice",
+        "actorType": "user",
+        "hypothesis": "cuántos formularios se empiezan (denominador de la tasa de abandono)",
+        "decision": "calcular la tasa de abandono de cada formulario y decidir cuál rediseñar primero",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Se analiza junto a `form_abandoned` en reportes.",
+        "pii": "Solo `form_id`.",
+        "throttle": "1 por formulario montado.",
+        "allowlist": [
+          "form_id",
+          "section"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "d34b03ab-148d-41a7-a604-7200db2e8643",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "7a088ad9-5337-46b7-a035-5a7ac92d9bac",
+          "userId": "7222b768-9bc3-437a-aef7-e247ab4cb258",
+          "actorType": "user",
+          "event_type": "form_started",
+          "schemaVersion": "1.0.0",
+          "requestId": "68e43d93-e4c4-4b7b-a785-d96958375b7d",
+          "source": "backoffice",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "form_id": "outbound_order",
+            "section": "inventory_outbound"
+          }
+        }
+      ]
+    },
+    "form_submitted": {
+      "title": "form_submitted",
+      "description": "Se emite cuando: Un formulario se envía y la API lo acepta.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "form_submitted"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "form_id",
+                "section",
+                "time_to_submit_ms",
+                "validation_errors_before_submit"
+              ],
+              "properties": {
+                "form_id": {
+                  "type": "string",
+                  "enum": [
+                    "inbound_order",
+                    "outbound_order",
+                    "product_create",
+                    "supplier_create",
+                    "incident_create",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "change_password",
+                    "profile_edit"
+                  ],
+                  "description": "Formulario del backoffice."
+                },
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "suppliers",
+                    "incidents",
+                    "incidents_new",
+                    "incidents_summary",
+                    "inventory_products",
+                    "inventory_orders",
+                    "inventory_inbound",
+                    "inventory_outbound",
+                    "account_profile",
+                    "account_password",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "not_found"
+                  ],
+                  "description": "Sección del backoffice (enum cerrado, una por página de `uis/backoffice/app`)."
+                },
+                "time_to_submit_ms": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Desde `form_started` hasta el envío."
+                },
+                "validation_errors_before_submit": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Errores mostrados antes del envío correcto."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "navigation",
+        "classification": "opportunity",
+        "emitter": "Backoffice · respuesta 2xx del envío de un formulario",
+        "source": "backoffice",
+        "actorType": "user",
+        "hypothesis": "cuánto tarda el personal en completar cada formulario",
+        "decision": "simplificar los formularios más lentos (el de salida se usa en plena consulta)",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Análisis de UX.",
+        "pii": "Solo métricas, ningún valor.",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "form_id",
+          "section",
+          "time_to_submit_ms",
+          "validation_errors_before_submit"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "a52f6e28-bc1f-43bb-a05b-6044b546a485",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "a09b1ab3-58f3-4108-a93c-333befa3e883",
+          "userId": "4df5f409-b9cd-488c-a6a6-0b157c446742",
+          "actorType": "user",
+          "event_type": "form_submitted",
+          "schemaVersion": "1.0.0",
+          "requestId": "589403e6-cc65-453e-a5a5-e99b4124bcb7",
+          "source": "backoffice",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "form_id": "outbound_order",
+            "section": "inventory_outbound",
+            "time_to_submit_ms": 21400,
+            "validation_errors_before_submit": 1
+          }
+        }
+      ]
+    },
+    "form_abandoned": {
+      "title": "form_abandoned",
+      "description": "Se emite cuando: Un formulario empezado se abandona sin enviar.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "form_abandoned"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "form_id",
+                "section",
+                "last_field",
+                "fields_completed",
+                "fields_total",
+                "time_spent_ms",
+                "exit_type"
+              ],
+              "properties": {
+                "form_id": {
+                  "type": "string",
+                  "enum": [
+                    "inbound_order",
+                    "outbound_order",
+                    "product_create",
+                    "supplier_create",
+                    "incident_create",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "change_password",
+                    "profile_edit"
+                  ],
+                  "description": "Formulario del backoffice."
+                },
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "suppliers",
+                    "incidents",
+                    "incidents_new",
+                    "incidents_summary",
+                    "inventory_products",
+                    "inventory_orders",
+                    "inventory_inbound",
+                    "inventory_outbound",
+                    "account_profile",
+                    "account_password",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "not_found"
+                  ],
+                  "description": "Sección del backoffice (enum cerrado, una por página de `uis/backoffice/app`)."
+                },
+                "last_field": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[a-z_]{1,40}$",
+                  "description": "Último campo tocado (nombre)."
+                },
+                "fields_completed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Campos con valor."
+                },
+                "fields_total": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Campos del formulario."
+                },
+                "time_spent_ms": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Tiempo desde `form_started`."
+                },
+                "exit_type": {
+                  "type": "string",
+                  "enum": [
+                    "navigation",
+                    "tab_closed",
+                    "session_expired"
+                  ],
+                  "description": "Cómo se salió."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "navigation",
+        "classification": "opportunity",
+        "emitter": "Backoffice · desmontaje del formulario, cambio de ruta o `pagehide` (vía `navigator.sendBeacon`)",
+        "source": "backoffice",
+        "actorType": "user",
+        "hypothesis": "en qué formularios (y en qué campo) se abandona el flujo a mitad",
+        "decision": "rediseñar el paso donde se concentra el abandono; un consumo abandonado es un consumo sin registrar = stock incorrecto",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Decisión de diseño por sprint.",
+        "pii": "`last_field` es el nombre del campo, nunca su contenido.",
+        "throttle": "1 por formulario montado.",
+        "allowlist": [
+          "form_id",
+          "section",
+          "last_field",
+          "fields_completed",
+          "fields_total",
+          "time_spent_ms",
+          "exit_type"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "f0ce5f17-1815-42ec-a6a9-554e00fb5733",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "c22f9b82-9e19-43e5-a9bd-5174c97bf4c0",
+          "userId": "f698d848-bf36-4a7b-a1fc-e870db4beabf",
+          "actorType": "user",
+          "event_type": "form_abandoned",
+          "schemaVersion": "1.0.0",
+          "requestId": "9b7dbada-90e1-4a78-aacd-441707a0a8dd",
+          "source": "backoffice",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "form_id": "inbound_order",
+            "section": "inventory_inbound",
+            "last_field": "vendor_name",
+            "fields_completed": 2,
+            "fields_total": 4,
+            "time_spent_ms": 48000,
+            "exit_type": "navigation"
+          }
+        }
+      ]
+    },
+    "form_validation_failed": {
+      "title": "form_validation_failed",
+      "description": "Se emite cuando: Un formulario muestra uno o más errores de validación al usuario.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "form_validation_failed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "form_id",
+                "field_names",
+                "error_codes",
+                "validation_side"
+              ],
+              "properties": {
+                "form_id": {
+                  "type": "string",
+                  "enum": [
+                    "inbound_order",
+                    "outbound_order",
+                    "product_create",
+                    "supplier_create",
+                    "incident_create",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "change_password",
+                    "profile_edit"
+                  ],
+                  "description": "Formulario del backoffice."
+                },
+                "field_names": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z_]{1,40}$"
+                  },
+                  "description": "Nombres de campo (claves del formulario). NUNCA sus valores."
+                },
+                "error_codes": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z_]{1,40}$"
+                  },
+                  "description": "Tipo de error por campo (`missing`, `greater_than`, `string_too_long`…), mismo orden que `field_names`."
+                },
+                "validation_side": {
+                  "type": "string",
+                  "enum": [
+                    "client",
+                    "server"
+                  ],
+                  "description": "Dónde se detectó."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "navigation",
+        "classification": "opportunity",
+        "emitter": "Backoffice · validación en cliente o 422 mostrado en un formulario",
+        "source": "backoffice",
+        "actorType": "user",
+        "hypothesis": "qué campos confunden más al personal en cada formulario",
+        "decision": "reescribir etiquetas/ayudas o cambiar el tipo de input de esos campos",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Decisión de diseño.",
+        "pii": "Solo nombres de campo y tipo de error.",
+        "throttle": "1 por intento de envío.",
+        "allowlist": [
+          "form_id",
+          "field_names",
+          "error_codes",
+          "validation_side"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "c4990266-bc26-4c2d-a3b3-2f101f102584",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "38717603-74b3-437e-afbf-2ba99c209d9a",
+          "userId": "fa885fed-d754-4838-a8de-30a956709d22",
+          "actorType": "user",
+          "event_type": "form_validation_failed",
+          "schemaVersion": "1.0.0",
+          "requestId": "767617f0-b60b-4254-afbb-7f89d95cec4e",
+          "source": "backoffice",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "form_id": "outbound_order",
+            "field_names": [
+              "quantity"
+            ],
+            "error_codes": [
+              "greater_than"
+            ],
+            "validation_side": "server"
+          }
+        }
+      ]
+    },
+    "api_latency_recorded": {
+      "title": "api_latency_recorded",
+      "description": "Se emite cuando: Termina una petición HTTP (con muestreo, ver throttle).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "api_latency_recorded"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "route_template",
+                "http_method",
+                "status_code",
+                "duration_ms",
+                "cache_status",
+                "sample_rate"
+              ],
+              "properties": {
+                "route_template": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9_\\-/\\[\\]{}]*$",
+                  "maxLength": 120,
+                  "description": "Plantilla de ruta (`/inventory/products/{supply_id}`), nunca la URL real con IDs ni query string."
+                },
+                "http_method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ],
+                  "description": "Método HTTP."
+                },
+                "status_code": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 599,
+                  "description": "Código HTTP de la respuesta."
+                },
+                "duration_ms": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Duración en milisegundos."
+                },
+                "cache_status": {
+                  "type": "string",
+                  "enum": [
+                    "HIT",
+                    "MISS",
+                    "BYPASS",
+                    "NONE"
+                  ],
+                  "description": "Header `X-Cache` (NONE si la ruta no usa caché)."
+                },
+                "sample_rate": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1,
+                  "description": "Probabilidad con la que se muestreó (1.0 o 0.1)."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "performance",
+        "classification": "opportunity",
+        "emitter": "API · `timing_middleware` de `main.py` (ya mide la duración)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "qué endpoints son lentos y si cumplimos un objetivo de p95 < 500 ms",
+        "decision": "qué optimizar o cachear a continuación (la metodología de CACHING_REPORT.md, ahora continua)",
+        "delivery": "batch",
+        "cadence": "cada 5 min",
+        "deliveryJustification": "Los percentiles se calculan sobre ventanas; nadie actúa sobre una petición suelta. La caída total del servicio la detecta el health check, no este evento.",
+        "pii": "Solo plantilla de ruta, método, código y tiempos.",
+        "throttle": "Muestreo: 100 % si `status_code >= 500` o `duration_ms >= 1000`; 10 % del resto. `sample_rate` va en el evento para re-ponderar.",
+        "allowlist": [
+          "route_template",
+          "http_method",
+          "status_code",
+          "duration_ms",
+          "cache_status",
+          "sample_rate"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "f404dd0f-8a69-40fe-a69a-4fa34e54d03d",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "b044468d-b416-4317-acac-c87a39fe64e6",
+          "userId": "d283fb66-c527-4bc7-af70-e6c0090a816d",
+          "actorType": "user",
+          "event_type": "api_latency_recorded",
+          "schemaVersion": "1.0.0",
+          "requestId": "f2b2d795-e7f4-48b7-a9ee-3b4b27003878",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "route_template": "/inventory/orders",
+            "http_method": "GET",
+            "status_code": 200,
+            "duration_ms": 182.4,
+            "cache_status": "NONE",
+            "sample_rate": 0.1
+          }
+        }
+      ]
+    },
+    "slow_query_detected": {
+      "title": "slow_query_detected",
+      "description": "Se emite cuando: Una consulta a Supabase tarda >= 500 ms.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "slow_query_detected"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "query_name",
+                "duration_ms",
+                "rows_returned",
+                "route_template",
+                "occurrence_count"
+              ],
+              "properties": {
+                "query_name": {
+                  "type": "string",
+                  "enum": [
+                    "supplies_with_stock",
+                    "stock_by_clinic",
+                    "orders_history_inbound",
+                    "orders_history_outbound",
+                    "product_lock_for_update",
+                    "other"
+                  ],
+                  "description": "Etiqueta lógica asignada en el código."
+                },
+                "duration_ms": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Duración en milisegundos."
+                },
+                "rows_returned": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Filas devueltas."
+                },
+                "route_template": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9_\\-/\\[\\]{}]*$",
+                  "maxLength": 120,
+                  "description": "Plantilla de ruta (`/inventory/products/{supply_id}`), nunca la URL real con IDs ni query string."
+                },
+                "occurrence_count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Ocurrencias agregadas en el minuto."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "performance",
+        "classification": "opportunity",
+        "emitter": "API · listener `after_cursor_execute` de SQLAlchemy sobre el engine de Supabase",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "qué consultas del inventario se degradan al crecer las tablas de pedidos",
+        "decision": "añadir índices, materializar el stock por clínica o paginar",
+        "delivery": "batch",
+        "cadence": "cada hora",
+        "deliveryJustification": "Degradación gradual que se corrige en el siguiente sprint.",
+        "pii": "NUNCA el SQL ni sus parámetros: solo una etiqueta lógica de la consulta.",
+        "throttle": "Máx. 1 por (`query_name`) por minuto, con `occurrence_count`.",
+        "allowlist": [
+          "query_name",
+          "duration_ms",
+          "rows_returned",
+          "route_template",
+          "occurrence_count"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "e3f23b5a-e6eb-441b-ada3-5c25fc433982",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "ec42f64a-a14c-4e32-aec2-39f2bf6d3544",
+          "userId": "af5f72e1-0e2d-4a50-ac9e-2f51fcafb2dd",
+          "actorType": "user",
+          "event_type": "slow_query_detected",
+          "schemaVersion": "1.0.0",
+          "requestId": "5c039464-1cd8-41a1-a123-bad154103d16",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "query_name": "orders_history_outbound",
+            "duration_ms": 812.0,
+            "rows_returned": 24000,
+            "route_template": "/inventory/orders",
+            "occurrence_count": 3
+          }
+        }
+      ]
+    },
+    "page_load_recorded": {
+      "title": "page_load_recorded",
+      "description": "Se emite cuando: Se completa la carga de una página (Core Web Vitals).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "page_load_recorded"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "section",
+                "metric",
+                "value",
+                "rating",
+                "device_type"
+              ],
+              "properties": {
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "suppliers",
+                    "incidents",
+                    "incidents_new",
+                    "incidents_summary",
+                    "inventory_products",
+                    "inventory_orders",
+                    "inventory_inbound",
+                    "inventory_outbound",
+                    "account_profile",
+                    "account_password",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "not_found"
+                  ],
+                  "description": "Sección del backoffice (enum cerrado, una por página de `uis/backoffice/app`)."
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "LCP",
+                    "CLS",
+                    "INP",
+                    "TTFB",
+                    "FCP"
+                  ],
+                  "description": "Métrica."
+                },
+                "value": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Valor (ms; CLS sin unidad)."
+                },
+                "rating": {
+                  "type": "string",
+                  "enum": [
+                    "good",
+                    "needs-improvement",
+                    "poor"
+                  ],
+                  "description": "Clasificación de web-vitals."
+                },
+                "device_type": {
+                  "type": "string",
+                  "enum": [
+                    "desktop",
+                    "tablet",
+                    "mobile"
+                  ],
+                  "description": "Dispositivo."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "performance",
+        "classification": "opportunity",
+        "emitter": "Backoffice · `useReportWebVitals` de Next.js",
+        "source": "backoffice",
+        "actorType": "user",
+        "hypothesis": "si el backoffice carga lento en los equipos de las clínicas",
+        "decision": "priorizar trabajo de rendimiento frontend por sección",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Tendencias por release.",
+        "pii": "Sin datos personales.",
+        "throttle": "Muestreo por sesión: 25 % de las sesiones.",
+        "allowlist": [
+          "section",
+          "metric",
+          "value",
+          "rating",
+          "device_type"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "0a64005b-ecd2-420e-a576-07091db94728",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "ecde9784-45a9-4308-ab3c-643b883dbc93",
+          "userId": "ab7cc385-2847-48ea-a598-ac7e8b1fe5f7",
+          "actorType": "user",
+          "event_type": "page_load_recorded",
+          "schemaVersion": "1.0.0",
+          "requestId": "42ffe8b5-b17c-42ac-af8a-5d64d699c17c",
+          "source": "backoffice",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "section": "inventory_orders",
+            "metric": "LCP",
+            "value": 1480,
+            "rating": "good",
+            "device_type": "desktop"
+          }
+        }
+      ]
+    },
+    "api_error_occurred": {
+      "title": "api_error_occurred",
+      "description": "Se emite cuando: Una excepción no controlada llega al handler global.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "api_error_occurred"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "route_template",
+                "http_method",
+                "error_class",
+                "error_fingerprint",
+                "app_release",
+                "occurrence_count"
+              ],
+              "properties": {
+                "route_template": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9_\\-/\\[\\]{}]*$",
+                  "maxLength": 120,
+                  "description": "Plantilla de ruta (`/inventory/products/{supply_id}`), nunca la URL real con IDs ni query string."
+                },
+                "http_method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ],
+                  "description": "Método HTTP."
+                },
+                "error_class": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_.]{0,80}$",
+                  "description": "Clase de la excepción (`OperationalError`)."
+                },
+                "error_fingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Hash de (tipo de error + archivo:función de los 5 frames superiores). Agrupa errores iguales sin guardar el mensaje."
+                },
+                "app_release": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{7,40}$",
+                  "description": "SHA corto del commit desplegado."
+                },
+                "occurrence_count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Ocurrencias agregadas."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "errors",
+        "classification": "opportunity",
+        "emitter": "API · `unhandled_exception_handler` de `main.py` (500)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "qué errores de servidor afectan a qué rutas tras cada despliegue",
+        "decision": "hotfix o rollback del release",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Un 500 en `POST /inventory/orders/*` significa que una clínica no puede registrar pedidos: se pierde trazabilidad mientras dure.",
+        "pii": "Nunca el mensaje de la excepción (puede contener valores). Solo clase y fingerprint; el detalle completo queda en el log del servidor.",
+        "throttle": "Mismo `error_fingerprint`: máx. 1 por minuto con `occurrence_count`.",
+        "allowlist": [
+          "route_template",
+          "http_method",
+          "error_class",
+          "error_fingerprint",
+          "app_release",
+          "occurrence_count"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "f1f8f4e3-f8d0-4ed2-ab12-7c04c97f7a1d",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "c70cb396-7433-4530-a482-2afdab8168b6",
+          "userId": "d8b896e0-763b-4484-a264-e9bb2af7f737",
+          "actorType": "user",
+          "event_type": "api_error_occurred",
+          "schemaVersion": "1.0.0",
+          "requestId": "bf85528e-790b-47bd-a7ed-ad9936c661c6",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "route_template": "/inventory/orders/outbound",
+            "http_method": "POST",
+            "error_class": "sqlalchemy.exc.OperationalError",
+            "error_fingerprint": "a1c9e0f2b3d4e5f6",
+            "app_release": "e350763",
+            "occurrence_count": 1
+          }
+        }
+      ]
+    },
+    "frontend_error_occurred": {
+      "title": "frontend_error_occurred",
+      "description": "Se emite cuando: Un error de JavaScript no controlado llega a un error boundary o al handler global.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "frontend_error_occurred"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "section",
+                "error_name",
+                "error_fingerprint",
+                "boundary",
+                "app_release",
+                "occurrence_count"
+              ],
+              "properties": {
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "suppliers",
+                    "incidents",
+                    "incidents_new",
+                    "incidents_summary",
+                    "inventory_products",
+                    "inventory_orders",
+                    "inventory_inbound",
+                    "inventory_outbound",
+                    "account_profile",
+                    "account_password",
+                    "login",
+                    "register",
+                    "forgot_password",
+                    "reset_password",
+                    "not_found"
+                  ],
+                  "description": "Sección del backoffice (enum cerrado, una por página de `uis/backoffice/app`)."
+                },
+                "error_name": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z]{1,60}$",
+                  "description": "`TypeError`, `ChunkLoadError`…"
+                },
+                "error_fingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Hash de (tipo de error + archivo:función de los 5 frames superiores). Agrupa errores iguales sin guardar el mensaje."
+                },
+                "boundary": {
+                  "type": "string",
+                  "enum": [
+                    "route",
+                    "global",
+                    "window"
+                  ],
+                  "description": "Dónde se capturó."
+                },
+                "app_release": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{7,40}$",
+                  "description": "SHA corto del commit desplegado."
+                },
+                "occurrence_count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Ocurrencias agregadas."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "errors",
+        "classification": "opportunity",
+        "emitter": "Backoffice · `app/error.tsx`, `app/global-error.tsx` y `window.onerror`/`unhandledrejection`",
+        "source": "backoffice",
+        "actorType": "user",
+        "hypothesis": "qué errores de interfaz bloquean a los operadores y en qué sección",
+        "decision": "corregir o revertir el release que lo introdujo",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Un error en el formulario de salida impide registrar consumos (el stock deja de ser fiable). Hay que detectar el pico tras un despliegue en minutos.",
+        "pii": "Nunca el `message` ni el stack crudo (pueden contener datos tecleados): solo `error_name` y fingerprint.",
+        "throttle": "Mismo fingerprint por sesión: máx. 1 por minuto con `occurrence_count`.",
+        "allowlist": [
+          "section",
+          "error_name",
+          "error_fingerprint",
+          "boundary",
+          "app_release",
+          "occurrence_count"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "0af5ddda-fa23-4cbb-a794-71dab145b424",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "206c1ef1-ba77-4569-aa58-6108ef609927",
+          "userId": "9a76cb9c-be06-4862-a40f-5e362a788dee",
+          "actorType": "user",
+          "event_type": "frontend_error_occurred",
+          "schemaVersion": "1.0.0",
+          "requestId": "6610a6ac-7282-483c-a1e1-bacde7735be7",
+          "source": "backoffice",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "section": "inventory_outbound",
+            "error_name": "TypeError",
+            "error_fingerprint": "0b7d2c9e4f1a3b58",
+            "boundary": "route",
+            "app_release": "e350763",
+            "occurrence_count": 1
+          }
+        }
+      ]
+    },
+    "request_validation_failed": {
+      "title": "request_validation_failed",
+      "description": "Se emite cuando: Cualquier otra petición falla la validación de Pydantic.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "request_validation_failed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "route_template",
+                "http_method",
+                "field_names",
+                "error_codes"
+              ],
+              "properties": {
+                "route_template": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9_\\-/\\[\\]{}]*$",
+                  "maxLength": 120,
+                  "description": "Plantilla de ruta (`/inventory/products/{supply_id}`), nunca la URL real con IDs ni query string."
+                },
+                "http_method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ],
+                  "description": "Método HTTP."
+                },
+                "field_names": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z_]{1,40}$"
+                  },
+                  "description": "Nombres de campo (claves del formulario). NUNCA sus valores."
+                },
+                "error_codes": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z_]{1,40}$"
+                  },
+                  "description": "Tipo de error por campo (`missing`, `greater_than`, `string_too_long`…), mismo orden que `field_names`."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "errors",
+        "classification": "opportunity",
+        "emitter": "API · `validation_exception_handler` (422) en rutas que NO son `/inventory/orders/*`",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si hay clientes (scripts, integraciones, versiones viejas del frontend) mandando contratos rotos",
+        "decision": "corregir el cliente o versionar el endpoint",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "Calidad de integración, sin urgencia.",
+        "pii": "Nombres de campo y tipos de error; jamás valores (el handler ya descarta `input`, que puede incluir contraseñas).",
+        "throttle": "Ninguno.",
+        "allowlist": [
+          "route_template",
+          "http_method",
+          "field_names",
+          "error_codes"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "0bf2b904-cdef-40d5-af51-5786ab0a7ef8",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "2fc5d104-45c6-4199-acf5-ab7d14305c98",
+          "userId": "5ff9c2ec-ae19-479a-a04f-6ddea1122349",
+          "actorType": "user",
+          "event_type": "request_validation_failed",
+          "schemaVersion": "1.0.0",
+          "requestId": "4a72a5cc-8447-4556-aa74-dd57eedf1719",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "route_template": "/suppliers",
+            "http_method": "POST",
+            "field_names": [
+              "currency"
+            ],
+            "error_codes": [
+              "value_error"
+            ]
+          }
+        }
+      ]
+    },
+    "email_delivery_failed": {
+      "title": "email_delivery_failed",
+      "description": "Se emite cuando: SendGrid rechaza o no responde al enviar un correo.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "email_delivery_failed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "email_type",
+                "provider",
+                "provider_status_code",
+                "occurrence_count"
+              ],
+              "properties": {
+                "email_type": {
+                  "type": "string",
+                  "enum": [
+                    "password_reset"
+                  ],
+                  "description": "Tipo de correo."
+                },
+                "provider": {
+                  "type": "string",
+                  "enum": [
+                    "sendgrid"
+                  ],
+                  "description": "Proveedor."
+                },
+                "provider_status_code": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "HTTP del proveedor; null si no respondió."
+                },
+                "occurrence_count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Ocurrencias agregadas."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "errors",
+        "classification": "opportunity",
+        "emitter": "API · `email_service.send_password_reset_email` (rama `except`)",
+        "source": "api",
+        "actorType": "user",
+        "hypothesis": "si el personal se está quedando sin poder recuperar el acceso por fallos del proveedor de email",
+        "decision": "rotar la API key, verificar el remitente o cambiar de proveedor",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Hoy el fallo es silencioso (la API responde 200 igual). Si SendGrid cae, nadie puede recuperar su cuenta hasta que alguien lo note.",
+        "pii": "Ni destinatario ni contenido: solo el tipo de correo y el código del proveedor.",
+        "throttle": "Máx. 1 por minuto con `occurrence_count`.",
+        "allowlist": [
+          "email_type",
+          "provider",
+          "provider_status_code",
+          "occurrence_count"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "c1506ccd-0c89-4db0-a9fc-161eda6d8732",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": "6d0db898-c2a7-4748-a7c2-b72e9b90ecfc",
+          "userId": "3548aac2-b568-476a-aff8-23feb2a81ca7",
+          "actorType": "user",
+          "event_type": "email_delivery_failed",
+          "schemaVersion": "1.0.0",
+          "requestId": "b170ddae-5d7f-4838-a9f4-eac61df04fd8",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "email_type": "password_reset",
+            "provider": "sendgrid",
+            "provider_status_code": 401,
+            "occurrence_count": 1
+          }
+        }
+      ]
+    },
+    "scheduled_job_completed": {
+      "title": "scheduled_job_completed",
+      "description": "Se emite cuando: Un job programado termina correctamente.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "scheduled_job_completed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "job_name",
+                "duration_ms",
+                "items_scanned",
+                "events_emitted",
+                "country"
+              ],
+              "properties": {
+                "job_name": {
+                  "type": "string",
+                  "enum": [
+                    "expiry_scan",
+                    "supplier_renewal_scan",
+                    "threshold_reconcile"
+                  ],
+                  "description": "Job."
+                },
+                "duration_ms": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Duración en milisegundos."
+                },
+                "items_scanned": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Registros revisados."
+                },
+                "events_emitted": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Eventos de negocio generados."
+                },
+                "country": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "US",
+                    "UK",
+                    null
+                  ],
+                  "description": "País procesado (los jobs corren por zona horaria)."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "system",
+        "classification": "opportunity",
+        "emitter": "Scheduler · al terminar cada job (`expiry_scan`, `supplier_renewal_scan`, `threshold_reconcile`)",
+        "source": "scheduler",
+        "actorType": "system",
+        "hypothesis": "si los jobs que generan eventos obligatorios corren cada día (un `expiry_scan` que no corre = cero `supply_expiry_flagged` y nadie lo nota)",
+        "decision": "alertar por AUSENCIA: si no llega el evento del día a las 07:00, se pagina a guardia",
+        "delivery": "batch",
+        "cadence": "diario",
+        "deliveryJustification": "El job es diario; la alerta de ausencia se evalúa una vez al día.",
+        "pii": "Sin datos personales.",
+        "throttle": "1 por ejecución.",
+        "allowlist": [
+          "job_name",
+          "duration_ms",
+          "items_scanned",
+          "events_emitted",
+          "country"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "a08d26b4-10fa-40b6-a29f-6a8d69fdc833",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": null,
+          "userId": null,
+          "actorType": "system",
+          "event_type": "scheduled_job_completed",
+          "schemaVersion": "1.0.0",
+          "requestId": "fad48544-0f0b-456d-adec-6e15ffd80bea",
+          "source": "scheduler",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "job_name": "expiry_scan",
+            "duration_ms": 1830,
+            "items_scanned": 340,
+            "events_emitted": 4,
+            "country": "UK"
+          }
+        }
+      ]
+    },
+    "scheduled_job_failed": {
+      "title": "scheduled_job_failed",
+      "description": "Se emite cuando: Un job programado falla.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "scheduled_job_failed"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "job_name",
+                "error_class",
+                "error_fingerprint",
+                "attempt"
+              ],
+              "properties": {
+                "job_name": {
+                  "type": "string",
+                  "enum": [
+                    "expiry_scan",
+                    "supplier_renewal_scan",
+                    "threshold_reconcile"
+                  ],
+                  "description": "Job."
+                },
+                "error_class": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_.]{0,80}$",
+                  "description": "Clase de la excepción."
+                },
+                "error_fingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{16}$",
+                  "description": "Hash de (tipo de error + archivo:función de los 5 frames superiores). Agrupa errores iguales sin guardar el mensaje."
+                },
+                "attempt": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Número de reintento."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "system",
+        "classification": "opportunity",
+        "emitter": "Scheduler · `except` de cada job",
+        "source": "scheduler",
+        "actorType": "system",
+        "hypothesis": "si dejamos de calcular caducidades o umbrales sin saberlo",
+        "decision": "re-ejecutar el job y corregir la causa el mismo día",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Un fallo del job de caducidades deja ciega a la red justo con los insumos que más riesgo de compliance tienen.",
+        "pii": "Sin datos personales; sin mensaje de error crudo.",
+        "throttle": "1 por ejecución.",
+        "allowlist": [
+          "job_name",
+          "error_class",
+          "error_fingerprint",
+          "attempt"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "30014564-e6c5-40cc-a163-b43e15fa1af4",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": null,
+          "userId": null,
+          "actorType": "system",
+          "event_type": "scheduled_job_failed",
+          "schemaVersion": "1.0.0",
+          "requestId": "cf0c29ce-f52e-4516-a85d-22602ce54927",
+          "source": "scheduler",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "job_name": "expiry_scan",
+            "error_class": "OperationalError",
+            "error_fingerprint": "5e6f7a8b9c0d1e2f",
+            "attempt": 1
+          }
+        }
+      ]
+    },
+    "telemetry_event_rejected": {
+      "title": "telemetry_event_rejected",
+      "description": "Se emite cuando: Un evento no cumple su esquema: claves fuera de la allowlist (se eliminan), campo obligatorio ausente, tipo incorrecto o patrón de PII detectado (se descarta).",
+      "allOf": [
+        {
+          "$ref": "#/definitions/envelope"
+        },
+        {
+          "properties": {
+            "event_type": {
+              "const": "telemetry_event_rejected"
+            },
+            "schemaVersion": {
+              "const": "1.0.0"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rejected_event_type",
+                "reason",
+                "property_names",
+                "emitter_source",
+                "occurrence_count"
+              ],
+              "properties": {
+                "rejected_event_type": {
+                  "type": "string",
+                  "pattern": "^[a-z]+(_[a-z]+)+$",
+                  "description": "`event_type` del evento rechazado."
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "unknown_property_stripped",
+                    "required_missing",
+                    "type_mismatch",
+                    "pii_pattern_detected",
+                    "unknown_event_type"
+                  ],
+                  "description": "Motivo."
+                },
+                "property_names": {
+                  "type": "array",
+                  "maxItems": 30,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z_]{1,40}$"
+                  },
+                  "description": "Claves afectadas (solo nombres)."
+                },
+                "emitter_source": {
+                  "type": "string",
+                  "enum": [
+                    "api",
+                    "backoffice",
+                    "scheduler"
+                  ],
+                  "description": "Quién lo emitió."
+                },
+                "occurrence_count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Ocurrencias agregadas."
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-healthcore": {
+        "category": "system",
+        "classification": "opportunity",
+        "emitter": "Emisor de telemetría (`services/api/telemetry.py` y `uis/backoffice/lib/telemetry.ts`) al validar contra este esquema",
+        "source": "api",
+        "actorType": "system",
+        "hypothesis": "si algún punto de instrumentación está mandando datos que no debe o eventos rotos",
+        "decision": "corregir el emisor antes de que se pierdan eventos obligatorios o se filtre un dato",
+        "delivery": "stream",
+        "cadence": "< 1 min",
+        "deliveryJustification": "Un `pii_pattern_detected` es un posible incidente HIPAA/UK GDPR y un evento obligatorio descartado es un agujero en los datos de compliance: los dos se arreglan el mismo día.",
+        "pii": "Nunca incluye el evento rechazado ni los valores: solo el `event_type`, el motivo y los NOMBRES de las claves afectadas.",
+        "throttle": "Máx. 1 por (`rejected_event_type`, `reason`) por minuto con `occurrence_count`.",
+        "allowlist": [
+          "rejected_event_type",
+          "reason",
+          "property_names",
+          "emitter_source",
+          "occurrence_count"
+        ]
+      },
+      "examples": [
+        {
+          "eventId": "e615ca75-74f3-41ae-a93e-de49d385ba9d",
+          "timestamp": "2026-11-20T14:03:12.481Z",
+          "sessionId": null,
+          "userId": null,
+          "actorType": "system",
+          "event_type": "telemetry_event_rejected",
+          "schemaVersion": "1.0.0",
+          "requestId": "57a76380-22e4-42a0-ae84-2752e5bebf35",
+          "source": "api",
+          "environment": "production",
+          "appVersion": "e350763",
+          "properties": {
+            "rejected_event_type": "outbound_order_created",
+            "reason": "unknown_property_stripped",
+            "property_names": [
+              "patient_id"
+            ],
+            "emitter_source": "api",
+            "occurrence_count": 1
+          }
+        }
+      ]
+    }
+  }
+}
